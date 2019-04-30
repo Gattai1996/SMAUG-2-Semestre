@@ -1,24 +1,3 @@
-"""
-Sample Python/Pygame Programs
-Simpson College Computer Science
-http://programarcadegames.com/
-http://simpson.edu/computer-science/
-
-From:
-http://programarcadegames.com/python_examples/f.php?file=platform_scroller.py
-
-Explanation video: http://youtu.be/QplXBw_NK5Y
-
-Part of a series:
-http://programarcadegames.com/python_examples/f.php?file=move_with_walls_example.py
-http://programarcadegames.com/python_examples/f.php?file=maze_runner.py
-http://programarcadegames.com/python_examples/f.php?file=platform_jumper.py
-http://programarcadegames.com/python_examples/f.php?file=platform_scroller.py
-http://programarcadegames.com/python_examples/f.php?file=platform_moving.py
-http://programarcadegames.com/python_examples/sprite_sheets/
-
-"""
-
 import pygame
 import math
 import random
@@ -278,12 +257,13 @@ class Player(pygame.sprite.Sprite):
             self.change_y = -10
 
     def shoot(self):
-        bullet = Bullet(self.rect.centerx, self.rect.centery)
-        self.level.bullet_list.add(bullet)
-        if self.facing == 'right':
-            bullet.speed = 10
-        if self.facing == 'left':
-            bullet.speed = -10
+        if self.attacking:
+            bullet = Bullet(self.rect.centerx, self.rect.centery)
+            self.level.bullet_list.add(bullet)
+            if self.facing == 'right':
+                bullet.speed = 10
+            if self.facing == 'left':
+                bullet.speed = -10
 
     # Player-controlled movement:
     def go_left(self):
@@ -532,8 +512,8 @@ def main():
 
     # Set the height and width of the screen
     size = [SCREEN_WIDTH, SCREEN_HEIGHT]
-    #screen = pygame.display.set_mode(size)
-    screen = pygame.display.set_mode((size), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode(size)
+    #screen = pygame.display.set_mode((size), pygame.FULLSCREEN)
 
     pygame.display.set_caption("Side-scrolling Platformer")
 
@@ -567,8 +547,7 @@ def main():
         joysticks.append(pygame.joystick.Joystick(i))
         # initialize them all (-1 means loop forever)
         joysticks[-1].init()
-        # print a statement telling what the name of the controller is
-        print("Detected joystick '", joysticks[-1].get_name(), "'")
+
 
     # Loop until the user clicks the close button.
     done = False
@@ -591,25 +570,30 @@ def main():
                 if event.key == pygame.K_UP or event.key == pygame.K_w:
                     player.jump()
                 if event.key == pygame.K_SPACE:
-                    player.shoot()
                     player.attacking = True
+                    pygame.time.set_timer(pygame.USEREVENT+1, 500)
+                    player.shoot()
+
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a and player.change_x < 0:
                     player.stop()
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d and player.change_x > 0:
                     player.stop()
-                if event.key == pygame.K_SPACE:
-                    player.attacking = False
+
 
             #Joysick buttons:
             if event.type == pygame.JOYBUTTONDOWN:
-                print("Joystick '", joysticks[event.joy].get_name(), "' button", event.button, "down.")
                 if event.button == 0 or event.button == 1:
                     player.jump()
                 if event.button == 2 or event.button == 3:
-                    player.shoot()
                     player.attacking = True
+                    pygame.time.set_timer(pygame.USEREVENT+1, 500)
+                    player.shoot()
+
+            if event.type == pygame.USEREVENT + 1:
+                player.attacking = False
+
 
         # Joystick analog:
         joystick_count = pygame.joystick.get_count()
@@ -620,7 +604,6 @@ def main():
 
             for i in range(2):
                 axis = joystick.get_axis(i)
-                print('Axis {} Value: {}'.format(i, axis))
                 # if i == 0 and -0.2 < axis < 0.2:
                 #     player.stop()
                 if i == 0 and axis > 0.2:
@@ -639,7 +622,6 @@ def main():
 
             for i in range(hats):
                 hat = joystick.get_hat(i)
-                print('Hat {} Value: {}'.format(hat, i))
                 if hat == (1, 0):
                     player.go_right()
                     player.facing = 'right'
@@ -683,7 +665,7 @@ def main():
 
         # Update the screen with what we've drawn.
         pygame.display.flip()
-
+        print(player.attacking)
     pygame.quit()
 
 
