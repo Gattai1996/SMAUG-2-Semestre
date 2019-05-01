@@ -24,7 +24,7 @@ font_name = pygame.font.match_font('arial')
 # Funtion used to manage texts
 def Print_in_screen(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
-    text_surface = font.render(text, True, YELLOW)
+    text_surface = font.render(text, True, WHITE)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
@@ -62,6 +62,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.idle_right[0]
         # Set a referance to the image rect.
         self.rect = self.image.get_rect()
+        self.radius = 25
         # Set speed vector of player
         self.change_x = 0
         self.change_y = 0
@@ -170,7 +171,6 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.current_frame = (self.current_frame + 1) % len(self.idle_left)
                     self.image = self.idle_left[self.current_frame]
-
     def delay_dano(self):
         self.delay = True
         pygame.time.set_timer(pygame.USEREVENT+2, 500)
@@ -319,7 +319,7 @@ class Player(pygame.sprite.Sprite):
 class Heart(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.transform.scale(pygame.image.load('img/heart.png'), (50, 50))
+        self.image = pygame.transform.scale(pygame.image.load('img/heart.png').convert_alpha(), (60, 50))
         self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -561,6 +561,167 @@ class Level_02(Level):
         self.enemy_list.add(Enemy(400, 550, 200, 450))
 
 
+# Initiallize joystick
+pygame.joystick.init()
+joysticks = []
+for i in range(0, pygame.joystick.get_count()):
+    # create an Joystick object in our list
+    joysticks.append(pygame.joystick.Joystick(i))
+    # initialize them all (-1 means loop forever)
+    joysticks[-1].init()
+
+
+def marca():
+    show_marca = True
+    pygame.init()
+    pygame.mouse.set_visible(False)
+    size = [SCREEN_WIDTH, SCREEN_HEIGHT]
+    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    marca1 = pygame.image.load('img/marca.png').convert_alpha()
+    pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
+
+    while show_marca:
+        screen.blit(marca1, [0, 0])
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.USEREVENT+3:
+                show_marca = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    show_marca = False
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    quit()
+
+            if event.type == pygame.JOYBUTTONDOWN:
+                if event.button == 0:
+                    show_marca = False
+
+
+marca()
+
+
+def menu():
+    running_menu = True
+
+    pygame.init()
+    pygame.mouse.set_visible(False)
+    size = [SCREEN_WIDTH, SCREEN_HEIGHT]
+    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+
+    pygame.mixer.music.load('msc/StageTheme.ogg')
+    pygame.mixer.music.set_volume(0.4)
+    select = pygame.mixer.Sound('sfx/select1.wav')
+    confirm = pygame.mixer.Sound('sfx/confirmation.wav')
+    image = pygame.transform.scale(pygame.image.load('img/menu.png').convert_alpha(), (1360, 768))
+    pygame.display.set_caption("Menu")
+
+    pos_play = [272, 512]
+    pos_config = [544, 512]
+    pos_off = [816, 512]
+    pos_light = 1
+    pos_light1 = (pos_play[0] - 8, pos_play[1] - 8)
+    pos_light2 = (pos_config[0] - 8, pos_config[1] - 8)
+    pos_light3 = (pos_off[0] - 8, pos_off[1] - 8)
+
+    play = pygame.transform.scale(pygame.image.load('img/play.png').convert_alpha(), (150, 150))
+    config = pygame.transform.scale(pygame.image.load('img/config.png').convert_alpha(), (150, 150))
+    turn_off = pygame.transform.scale(pygame.image.load('img/quit.png').convert_alpha(), (150, 150))
+    light = pygame.transform.scale(pygame.image.load('img/light.png').convert_alpha(), (170, 170))
+
+    pygame.mixer.music.play(loops=-1)
+
+    while running_menu:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_i:
+                    running_menu = False
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    quit()
+                if event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    if pos_light > 1:
+                        pos_light -= 1
+                        select.play()
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    if pos_light < 3:
+                        pos_light += 1
+                        select.play()
+                if event.key == pygame.K_SPACE:
+                    if pos_light == 1:
+                        confirm.play()
+                        running_menu = False
+                    if pos_light == 3:
+                        confirm.play()
+                        pygame.quit()
+                        quit()
+
+            if event.type == pygame.JOYBUTTONDOWN:
+                if event.button == 0:
+                    if pos_light == 1:
+                        running_menu = False
+                    if pos_light == 3:
+                        pygame.quit()
+                        quit()
+
+        # Joystick analog:
+        joystick_count = pygame.joystick.get_count()
+        # For each joystick:
+        for i in range(joystick_count):
+            joystick = pygame.joystick.Joystick(i)
+            joystick.init()
+
+            for i in range(2):
+                axis = joystick.get_axis(i)
+                if i == 0 and axis > 0.2:
+                    if pos_light < 3:
+                        pos_light += 1
+                        select.play()
+                if i == 0 and axis < -0.2:
+                    if pos_light > 1:
+                        pos_light -= 1
+                        select.play()
+
+            # Joystick arrows:
+            # Hat switch. All or nothing for direction, not like joysticks.
+            # Value comes back in an array.
+            # First one: 1 for right and -1 for left
+            # Second one: 1 for up and -1 for down
+            hats = joystick.get_numhats()
+
+            for i in range(hats):
+                hat = joystick.get_hat(i)
+                if hat == (1, 0):
+                    if pos_light < 3:
+                        pos_light += 1
+                        select.play()
+                if hat == (-1, 0):
+                    if pos_light > 1:
+                        pos_light -= 1
+                        select.play()
+
+        screen.blit(image, [0, 0])
+        screen.blit(play, pos_play)
+        screen.blit(config, pos_config)
+        screen.blit(turn_off, pos_off)
+
+        if pos_light == 1:
+            screen.blit(light, pos_light1)
+        elif pos_light == 2:
+            screen.blit(light, pos_light2)
+        elif pos_light == 3:
+            screen.blit(light, pos_light3)
+
+        clock.tick(10)
+        # Print_in_screen(screen, 'Aperte "i" para iniciar ou "Esc" para sair', 20, SCREEN_WIDTH / 2, 730)
+        # Update the screen with what we've drawn.
+        pygame.display.flip()
+
+
+menu()
+
+
 def main():
     """ Main Program """
     pygame.init()
@@ -568,7 +729,7 @@ def main():
     # Set the height and width of the screen
     size = [SCREEN_WIDTH, SCREEN_HEIGHT]
     screen = pygame.display.set_mode(size)
-    screen = pygame.display.set_mode((size), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 
     pygame.display.set_caption("Side-scrolling Platformer")
 
@@ -593,16 +754,6 @@ def main():
     active_sprite_list.add(player)
 
     pygame.mouse.set_visible(False)
-
-    pygame.joystick.init()
-
-    joysticks = []
-    for i in range(0, pygame.joystick.get_count()):
-        # create an Joystick object in our list
-        joysticks.append(pygame.joystick.Joystick(i))
-        # initialize them all (-1 means loop forever)
-        joysticks[-1].init()
-
 
     # Loop until the user clicks the close button.
     done = False
@@ -632,15 +783,13 @@ def main():
                     pygame.time.set_timer(pygame.USEREVENT+1, 500)
                     player.shoot()
 
-
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a and player.change_x < 0:
                     player.stop()
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d and player.change_x > 0:
                     player.stop()
 
-
-            #Joysick buttons:
+            # Joystick buttons:
             if event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 0 or event.button == 1:
                     player.jump()
@@ -726,7 +875,7 @@ def main():
 
         # Update the screen with what we've drawn.
         pygame.display.flip()
-        print(player.delay)
+
     pygame.quit()
 
 
