@@ -408,9 +408,9 @@ class Player(pygame.sprite.Sprite):
 
         # If it is ok to jump, set our speed upwards
         if len(platform_hit_list) > 0 or self.rect.bottom >= SCREEN_HEIGHT:
-            self.change_y = -10
+            self.change_y = -12
         if len(enemy_hit_list) > 0 or self.rect.bottom >= SCREEN_HEIGHT:
-            self.change_y = -10
+            self.change_y = -12
 
     def shoot(self):
         if self.attacking and not self.attack_delay:
@@ -567,6 +567,16 @@ class Obstacle(pygame.sprite.Sprite):
         # self.rect.y = y
 
 
+class Limitador(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface([width, height])
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
 class Espinhos(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height):
         pygame.sprite.Sprite.__init__(self)
@@ -591,6 +601,7 @@ class Aranha(pygame.sprite.Sprite):
     def __init__(self, x, y, min_y, max_y):
         pygame.sprite.Sprite.__init__(self)
         self.radius = 30
+        self.pos_y_inicial = y
         # self.load_img()
         self.type = 2
         self.image = pygame.transform.scale(pygame.image.load('img/aranha.png').convert_alpha(), (100, 100))
@@ -600,7 +611,7 @@ class Aranha(pygame.sprite.Sprite):
         self.rect.y = y
         # self.facing = 'right'
         self.pos_y = self.rect.y
-        self.change_y = 5
+        self.change_y = 1
         self.min_y = min_y
         self.max_y = max_y
         self.min_x = 0
@@ -635,12 +646,19 @@ class Aranha(pygame.sprite.Sprite):
 
     def update(self):
         # self.animate()
+
+        self.rect.y += self.change_y
         if self.action:
-            self.rect.y += self.change_y
-            if self.rect.top < self.min_y:
-                self.change_y = 5
+
+            # if self.rect.top < self.min_y:
+            self.change_y += 0.5
             if self.rect.bottom > self.player_y:
-                self.change_y = -2.5
+                self.change_y = -5
+        else:
+            if self.rect.top > 0:
+                self.change_y -= 0.2
+            else:
+                self.change_y = 0
 
 
 class Escaravelho(pygame.sprite.Sprite):
@@ -659,8 +677,8 @@ class Escaravelho(pygame.sprite.Sprite):
         self.facing = 'right'
         self.pos_x = self.rect.x
         self.change_x = 1
-        self.min_x = min_x
-        self.max_x = max_x
+        self.min_x = x - 180
+        self.max_x = x + 180
         self.current_frame = 0
         self.last_update = 0
         self.action = None
@@ -693,11 +711,10 @@ class Escaravelho(pygame.sprite.Sprite):
         self.action = None
         self.animate()
         self.rect.x += self.change_x
-        if self.rect.left < self.min_x:
-            self.change_x = 1
+        self.rect.y += self.change_y
+        if self.change_x == 1:
             self.facing = 'right'
-        if self.rect.right > self.max_x:
-            self.change_x = -1
+        else:
             self.facing = 'left'
 
 
@@ -745,15 +762,8 @@ class Level(pygame.sprite.Sprite):
         self.map = TiledMap(path.join(map_folder, 'level1.tmx'))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
-
-        # tm = pytmx.load_pygame('maps/level1.tmx', pixelalpha=True)
-        # self.width = tm.width * tm.tileheight
-        # self.height = tm.height * tm.tileheight
-        # self.tmxdata = tm
-
-        # self.map = TiledMap('maps/level1.tmx')
-        # self.map_img = self.map.map.make_map()
-        # self.map_rect = self.map_img.get_rect()
+        self.enemy_list = pygame.sprite.Group()
+        self.limitador1_lista = pygame.sprite.Group()
 
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "plataforma":
@@ -762,8 +772,17 @@ class Level(pygame.sprite.Sprite):
             if tile_object.name == "espinhos":
                 self.spike_list.add(Espinhos(tile_object.x, tile_object.y,
                                              tile_object.width, tile_object.height))
+            if tile_object.name == "escaravelho":
+                self.enemy_list.add(Escaravelho(tile_object.x, tile_object.y,
+                                                tile_object.width, tile_object.height))
+            if tile_object.name == "limitador1":
+                self.limitador1_lista.add(Limitador(tile_object.x, tile_object.y,
+                                                    tile_object.width, tile_object.height))
+            if tile_object.name == "aranha":
+                self.enemy_list.add(Aranha(tile_object.x, tile_object.y,
+                                           tile_object.width, tile_object.height))
 
-        self.image = pygame.image.load('maps/level2.png').convert_alpha()
+        self.image = pygame.image.load('maps/level1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = 0
         self.rect.y = 0
@@ -772,9 +791,9 @@ class Level(pygame.sprite.Sprite):
         self.hits_enemy = []
         self.hits_platform = []
         self.hitbox_in_enemy = []
+        self.enemy_hit_limitador = []
         self.heart_list = pygame.sprite.Group()
 
-        self.enemy_list = pygame.sprite.Group()
         self.bullet_list = pygame.sprite.Group()
         self.melee_hitbox_list = pygame.sprite.Group()
 
@@ -797,6 +816,7 @@ class Level(pygame.sprite.Sprite):
         self.bullet_list.update()
         self.melee_hitbox_list.update()
         self.spike_list.update()
+        self.limitador1_lista.update()
 
         for bullet in self.bullet_list:
             if bullet.rect.x > SCREEN_WIDTH or bullet.rect.x < -20:
@@ -812,22 +832,33 @@ class Level(pygame.sprite.Sprite):
         self.hits_platform = pygame.sprite.groupcollide(self.platform_list, self.bullet_list, False, True)
         self.hitbox_in_enemy = pygame.sprite.groupcollide(self.melee_hitbox_list, self.enemy_list, False, True)
         self.enemy_hit_platform = pygame.sprite.groupcollide(self.enemy_list, self.platform_list, False, False)
+        self.enemy_hit_limitador = pygame.sprite.groupcollide(self.enemy_list, self.limitador1_lista, False, False)
 
         # Se alguma faca bater em algo, toca o som
         for hit in self.hits_enemy or self.hits_platform:
             self.faca_3.play()
 
+        # Física dos escaravelhos
+        for escaravelho in self.enemy_hit_limitador:
+            if escaravelho.type == 1:
+                escaravelho.change_x = escaravelho.change_x * -1
+
+        for escaravelho in self.enemy_hit_platform:
+            if escaravelho.type == 1:
+                escaravelho.rect.y -= 1
+
         # Se a aranha bate em uma plataforma, para seu movimento
         for aranha in self.enemy_hit_platform:
             if aranha.type == 2:
-                aranha.change_y = -2.5
+                aranha.change_y = -5
 
-        for _ in self.enemy_list:
-            _.player_y = self.player_pos_y
-            if self.player_pos_x - _.rect.x > 50:
-                # Se inimigo for do tipo 2 (aranha)
-                if _.type == 2:
-                    _.action = True
+        for aranha in self.enemy_list:
+            if aranha.type == 2:
+                aranha.player_y = self.player_pos_y
+                if aranha.rect.x - self.player_pos_x < 200 and self.player_pos_x < aranha.rect.x + 200:
+                    aranha.action = True
+                else:
+                    aranha.action = False
 
     def draw(self, screen):
         """ Draw everything on this level. """
@@ -836,14 +867,14 @@ class Level(pygame.sprite.Sprite):
         self.platform_list.draw(screen)
         self.melee_hitbox_list.draw(screen)
         self.spike_list.draw(screen)
-
+        screen.fill(BLACK)
         screen.blit(self.image, [self.rect.x, 0])
 
         # Desenha a teia da aranha
-        for _ in self.enemy_list:
-            if _.action:
-                pygame.draw.line(screen, WHITE, (_.rect.centerx, -500),
-                                 (_.rect.centerx, _.rect.centery), 5)
+        for aranha in self.enemy_list:
+            if aranha.type == 2:
+                pygame.draw.line(screen, WHITE, (aranha.rect.centerx, -500),
+                                 (aranha.rect.centerx, aranha.rect.centery), 5)
 
         self.enemy_list.draw(screen)
         self.bullet_list.draw(screen)
@@ -881,6 +912,8 @@ class Level(pygame.sprite.Sprite):
             spike.rect.x += shift_x
         for hitbox in self.melee_hitbox_list:
             hitbox.rect.x += shift_x
+        for limitador in self.limitador1_lista:
+            limitador.rect.x += shift_x
 
 
 # Create platforms for the level
@@ -925,10 +958,10 @@ class Level01(Level):
         #     self.spike_list.add(block2)
 
         # Enemies in the level
-        self.enemy_list.add(Escaravelho(800, 535, 600, 1000))
-        self.enemy_list.add(Escaravelho(1300, 405, 1130, 1400))
-        self.enemy_list.add(Aranha(1300, 0, 0, 405))
-        self.enemy_list.add(Aranha(1600, 0, 0, 405))
+        # self.enemy_list.add(Escaravelho(800, 535, 600, 1000))
+        # self.enemy_list.add(Escaravelho(1300, 405, 1130, 1400))
+        # self.enemy_list.add(Aranha(1300, 0, 0, 405))
+        # self.enemy_list.add(Aranha(1600, 0, 0, 405))
 
         self.heart_list.add(Heart(1900, 630))
 
@@ -1160,7 +1193,7 @@ def main():
     active_sprite_list = pygame.sprite.Group()
 
     player.level = current_level
-    player.rect.x = 340
+    player.rect.x = 500
     player.rect.y = 600
 
     active_sprite_list.add(player)
