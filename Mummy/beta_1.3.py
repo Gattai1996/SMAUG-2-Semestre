@@ -21,7 +21,7 @@ screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 # Used to manage how fast the screen updates
 clock = pygame.time.Clock()
 # pygame.font.match_font() search a font based in input received, typed correctly or not
-font_name = pygame.font.match_font('bebas neue')
+font_name = pygame.font.match_font('princeofpersia')
 
 
 # Function used to manage texts
@@ -43,6 +43,13 @@ def draw_life_bar(surf, x, y, pct):
     fill_rect = pygame.Rect(x, y, fill, bar_height)
     pygame.draw.rect(surf, GREEN, fill_rect)
     pygame.draw.rect(surf, BLACK, outline_rect, 2)
+
+
+def draw_HUD_bar(surf, x, y):
+    HUD_length = SCREEN_WIDTH
+    HUD_height = 60
+    HUD = pygame.Rect(x, y, HUD_length, HUD_height)
+    pygame.draw.rect(surf, BLACK, HUD)
 
 
 class Player(pygame.sprite.Sprite):
@@ -116,6 +123,7 @@ class Player(pygame.sprite.Sprite):
         self.faca_2 = pygame.mixer.Sound('sfx/faca_2.wav')
         self.ataque_1 = pygame.mixer.Sound('sfx/ataque_1.wav')
         self.ataque_2 = pygame.mixer.Sound('sfx/ataque_2.wav')
+
 
     def load_img(self):
         for frame in range(0, 10):
@@ -341,6 +349,7 @@ class Player(pygame.sprite.Sprite):
                 if not self.dano_delay:
                     self.delay_dano()
 
+
         for block in block_hit_list:
             # If we are moving right,
             # set our right side to the left side of the item we hit
@@ -372,6 +381,17 @@ class Player(pygame.sprite.Sprite):
                 self.rect.bottom = block.rect.top
             elif self.change_y < 0:
                 self.rect.top = block.rect.bottom
+
+            # Stop our vertical movement
+            self.change_y = 0
+
+        for block1 in block_hit_list_enemy:
+            if block1.type == 2:
+                # Reset our position based on the top/bottom of the object.
+                # if self.change_y > 0:
+                #     self.rect.bottom = block.rect.top
+                if self.change_y < 0:
+                    self.rect.top = block1.rect.bottom
 
             # Stop our vertical movement
             self.change_y = 0
@@ -608,7 +628,7 @@ class Aranha(pygame.sprite.Sprite):
         self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
         self.rect.x = x
-        self.rect.y = y
+        self.rect.y = 0
         # self.facing = 'right'
         self.pos_y = self.rect.y
         self.change_y = 1
@@ -718,6 +738,77 @@ class Escaravelho(pygame.sprite.Sprite):
             self.facing = 'left'
 
 
+class Tocha(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.transform.scale(pygame.image.load('img/tocha_0.png').convert_alpha(), (20, 60))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.last_update = 0
+        self.current_frame = 0
+        self.imagens = []
+        self.carregar_imagens()
+
+    def carregar_imagens(self):
+        for n in range(0, 4):
+            img = pygame.transform.scale(pygame.image.load('img/tocha_{}.png'.format(n)), (20, 60))
+            self.imagens.append(img)
+
+    def animacao(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 50:
+            self.last_update = now
+            self.current_frame = (self.current_frame + 1) % len(self.imagens)
+            self.image = self.imagens[self.current_frame]
+
+    def update(self):
+        self.animacao()
+
+
+class Luz(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.image.load('img/luz.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
+class Poder(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.image.load('img/poder_000.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.last_update = 0
+        self.current_frame = 0
+        self.imagens = []
+        self.carregar_imagens()
+
+    def carregar_imagens(self):
+        for n in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/poder_00{}.png'.format(n)).convert_alpha(), (50, 50))
+            self.imagens.append(img)
+        for n in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/poder_01{}.png'.format(n)).convert_alpha(), (50, 50))
+            self.imagens.append(img)
+
+    def animacao(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 100:
+            self.last_update = now
+            self.current_frame = (self.current_frame + 1) % len(self.imagens)
+            self.image = self.imagens[self.current_frame]
+
+    def update(self):
+        self.animacao()
+
+
 class TiledMap:
     def __init__(self, filename):
         tm = pytmx.load_pygame(filename, pixelalpha=True)
@@ -756,6 +847,9 @@ class Level(pygame.sprite.Sprite):
 
         self.platform_list = pygame.sprite.Group()
         self.spike_list = pygame.sprite.Group()
+        self.tocha_lista = pygame.sprite.Group()
+        self.luz_lista = pygame.sprite.Group()
+        self.poder_lista = pygame.sprite.Group()
 
         game_folder = path.dirname(__file__)
         map_folder = path.join(game_folder, 'maps')
@@ -781,17 +875,38 @@ class Level(pygame.sprite.Sprite):
             if tile_object.name == "aranha":
                 self.enemy_list.add(Aranha(tile_object.x, tile_object.y,
                                            tile_object.width, tile_object.height))
+            if tile_object.name == "tocha":
+                self.tocha_lista.add(Tocha(tile_object.x, tile_object.y))
+
+        for tocha in self.tocha_lista:
+            self.luz_lista.add(Luz(tocha.rect.x - 110, tocha.rect.y - 100))
 
         self.image = pygame.image.load('maps/level1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = 0
         self.rect.y = 0
 
+        self.image2 = pygame.image.load('maps/level1-2.png').convert_alpha()
+        self.rect2 = self.image2.get_rect()
+        self.rect2.x = -2000
+        self.rect2.y = 0
+
+        self.image3 = pygame.image.load('maps/level1-3.png').convert_alpha()
+        self.rect3 = self.image3.get_rect()
+        self.rect3.x = -2000
+        self.rect3.y = 0
+
+        self.image4 = pygame.image.load('maps/level1-4.png').convert_alpha()
+        self.rect4 = self.image4.get_rect()
+        self.rect4.x = -2000
+        self.rect4.y = 0
+
         self.enemy_hit_platform = []
         self.hits_enemy = []
         self.hits_platform = []
         self.hitbox_in_enemy = []
         self.enemy_hit_limitador = []
+
         self.heart_list = pygame.sprite.Group()
 
         self.bullet_list = pygame.sprite.Group()
@@ -817,6 +932,9 @@ class Level(pygame.sprite.Sprite):
         self.melee_hitbox_list.update()
         self.spike_list.update()
         self.limitador1_lista.update()
+
+        self.tocha_lista.update()
+        self.poder_lista.update()
 
         for bullet in self.bullet_list:
             if bullet.rect.x > SCREEN_WIDTH or bullet.rect.x < -20:
@@ -868,6 +986,10 @@ class Level(pygame.sprite.Sprite):
         self.melee_hitbox_list.draw(screen)
         self.spike_list.draw(screen)
         screen.fill(BLACK)
+
+        screen.blit(self.image4, [self.rect4.x, 0])
+        screen.blit(self.image3, [self.rect3.x, 0])
+        screen.blit(self.image2, [self.rect2.x, 0])
         screen.blit(self.image, [self.rect.x, 0])
 
         # Desenha a teia da aranha
@@ -879,16 +1001,23 @@ class Level(pygame.sprite.Sprite):
         self.enemy_list.draw(screen)
         self.bullet_list.draw(screen)
 
-        draw_life_bar(screen, 50, 50, self.player.life)
+        draw_HUD_bar(screen, 0, 0)
+        draw_life_bar(screen, 50, 20, self.player.life)
         self.heart_list.draw(screen)
+        self.poder_lista.draw(screen)
+
         # Draw text on the screen
-        print_in_screen(screen, 'Level 1', 100, SCREEN_WIDTH / 2, 50)
+        print_in_screen(screen, 'Level   1-1', 20, SCREEN_WIDTH / 2, 10)
+        print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 10)
 
         # Teste de hitbox com círculos
         # for bullet in self.bullet_list:
         #     pygame.draw.circle(screen, RED, bullet.rect.center, bullet.radius)
         # for enemy in self.enemy_list:
         #     pygame.draw.circle(screen, RED, enemy.rect.center, enemy.radius)
+
+        self.tocha_lista.draw(screen)
+        self.luz_lista.draw(screen)
 
     def shift_world(self, shift_x):
         """ When the user moves left/right and we need to scroll
@@ -897,6 +1026,10 @@ class Level(pygame.sprite.Sprite):
         # Keep track of the shift amount
         self.world_shift += shift_x
         self.rect.x += shift_x
+        self.rect2.x += shift_x * 0.8
+        self.rect3.x += shift_x * 0.6
+        self.rect4.x += shift_x * 0.4
+
         # Go through all the sprite lists and shift
         for heart in self.heart_list:
             heart.rect.x += shift_x
@@ -914,7 +1047,12 @@ class Level(pygame.sprite.Sprite):
             hitbox.rect.x += shift_x
         for limitador in self.limitador1_lista:
             limitador.rect.x += shift_x
-
+        for tocha in self.tocha_lista:
+            tocha.rect.x += shift_x
+        for luz in self.luz_lista:
+            luz.rect.x += shift_x
+        for poder in self.poder_lista:
+            poder.rect.x += shift_x
 
 # Create platforms for the level
 class Level01(Level):
@@ -964,6 +1102,8 @@ class Level01(Level):
         # self.enemy_list.add(Aranha(1600, 0, 0, 405))
 
         self.heart_list.add(Heart(1900, 630))
+
+        self.poder_lista.add(Poder(1800, 630))
 
 # Create platforms for the level
 class Level02(Level):
@@ -1178,7 +1318,7 @@ def main():
 
     # screen = pygame.display.set_mode(size)
 
-    pygame.display.set_caption("Side-scrolling Platformer")
+    pygame.display.set_caption("Super Hero Mummy: Ramsés")
 
     # Create the player
     player = Player()
@@ -1193,7 +1333,7 @@ def main():
     active_sprite_list = pygame.sprite.Group()
 
     player.level = current_level
-    player.rect.x = 500
+    player.rect.x = 628
     player.rect.y = 600
 
     active_sprite_list.add(player)
@@ -1293,7 +1433,6 @@ def main():
                     player.go_left()
                     player.facing = 'left'
 
-
             # Joystick arrows:
             # Hat switch. All or nothing for direction, not like joysticks.
             # Value comes back in an array.
@@ -1317,15 +1456,15 @@ def main():
         current_level.update()
 
         # If the player gets near the right side, shift the world left (-x)
-        if player.rect.right >= 680:
-            diff = player.rect.right - 680
-            player.rect.right = 680
+        if player.rect.right >= 906:
+            diff = player.rect.right - 906
+            player.rect.right = 906
             current_level.shift_world(-diff)
 
         # If the player gets near the left side, shift the world right (+x)
-        if player.rect.left <= 340:
-            diff = 340 - player.rect.left
-            player.rect.left = 340
+        if player.rect.left <= 453:
+            diff = 453 - player.rect.left
+            player.rect.left = 453
             current_level.shift_world(diff)
 
         # If the player gets to the end of the level, go to the next level
