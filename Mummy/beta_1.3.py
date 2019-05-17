@@ -33,15 +33,15 @@ def print_in_screen(surf, text, tamanho, x, y):
     surf.blit(text_surface, text_rect)
 
 
-def draw_life_bar(surf, x, y, pct):
-    if pct < 0:
-        pct = 0
-    bar_length = 200
-    bar_height = 20
-    fill = (pct / 200) * bar_length
+def draw_life_bar(surf, x, y, width, height, color, life):
+    if life < 0:
+        life = 0
+    bar_length = width
+    bar_height = height
+    fill = (life / width) * bar_length
     outline_rect = pygame.Rect(x, y, bar_length, bar_height)
     fill_rect = pygame.Rect(x, y, fill, bar_height)
-    pygame.draw.rect(surf, GREEN, fill_rect)
+    pygame.draw.rect(surf, color, fill_rect)
     pygame.draw.rect(surf, BLACK, outline_rect, 2)
 
 
@@ -63,13 +63,12 @@ class Player(pygame.sprite.Sprite):
 
         # Call the parent's constructor
         pygame.sprite.Sprite.__init__(self)
-
-        # Create an image of the block, and fill it with a color.
-        # This could also be an image loaded from the disk.
-        # width = 40
-        # height = 60
-        # self.image = pygame.Surface([width, height])
-        # self.image.fill(BLACK)
+        # Listas de imagens
+        self.enemy_hit_list = []
+        self.enemy_hit_list = []
+        self.heart_hit_list = []
+        self.spike_hit_list = []
+        self.platform_hit_list = []
         self.melee_right = []
         self.melee_left = []
         self.idle_left = []
@@ -84,7 +83,6 @@ class Player(pygame.sprite.Sprite):
         self.idle_right = []
         self.dashing_right = []
         self.dashing_left = []
-
         self.load_img()
         self.image = self.idle_right[0]
         # Set a referance to the image rect.
@@ -93,6 +91,8 @@ class Player(pygame.sprite.Sprite):
         # Set speed vector of player
         self.change_x = 0
         self.change_y = 0
+        self.change_x2 = 0
+        self.change_y2 = 0
         self.current_frame = 0
         self.last_update = 0
         self.facing = 'right'
@@ -102,28 +102,25 @@ class Player(pygame.sprite.Sprite):
         self.attacking = False
         self.melee_atk = False
         self.dash = False
-
         self.dash_limit = False
-
         self.level = None
         self.life = 200
         self.dano_delay = False
         self.attack_delay = False
         self.melee_delay = False
+        self.tomando_dano = False
         self.dash_delay = 0
-
         self.dash_change_x = 0
         self.pos_init_dash = 0
         self.dash_right = 0
         self.dash_left = 0
-
+        # Sons
         self.spike = pygame.mixer.Sound('sfx/spike_hit.wav')
         self.heart = pygame.mixer.Sound('sfx/heart.wav')
         self.faca_1 = pygame.mixer.Sound('sfx/faca_1.wav')
         self.faca_2 = pygame.mixer.Sound('sfx/faca_2.wav')
         self.ataque_1 = pygame.mixer.Sound('sfx/ataque_1.wav')
         self.ataque_2 = pygame.mixer.Sound('sfx/ataque_2.wav')
-
 
     def load_img(self):
         for frame in range(0, 10):
@@ -280,6 +277,10 @@ class Player(pygame.sprite.Sprite):
         pygame.time.set_timer(pygame.USEREVENT+2, 500)
 
     def update(self):
+        if self.tomando_dano:
+            self.stop()
+        self.change_x2 = self.change_x2 * 0.95
+        self.change_y2 = self.change_y2 * 0.95
         # used to hitbox position update in level class
         self.dash_change_x = self.dash_change_x * 0.95
         self.level.dash_changes_x = self.dash_change_x
@@ -309,98 +310,144 @@ class Player(pygame.sprite.Sprite):
         self.calc_grav()
 
         # Move left/right
-        if not self.dash:
-            self.rect.x += self.change_x
+
+        self.rect.x += self.change_x2
+        self.rect.x += self.change_x
 
         # See if we hit anything
-        block_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
-        block_hit_list_enemy = pygame.sprite.spritecollide(self, self.level.enemy_list, False)
-        heart_hit_list = pygame.sprite.spritecollide(self, self.level.heart_list, True)
-        spike_hit_list = pygame.sprite.spritecollide(self, self.level.spike_list, False)
+        self.platform_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
+        self.enemy_hit_list = pygame.sprite.spritecollide(self, self.level.enemy_list, False,
+                                                          pygame.sprite.collide_circle)
+        self.heart_hit_list = pygame.sprite.spritecollide(self, self.level.heart_list, True)
+        self.spike_hit_list = pygame.sprite.spritecollide(self, self.level.spike_list, False)
+        self.hitbox_enemy = pygame.sprite.spritecollide(self, self.level.hitbox_attack_inimigo, False, pygame.sprite.collide_circle)
 
         if not self.melee_delay:
             self.level.melee_hitbox_list.empty()
 
-        for _ in heart_hit_list:
+        for heart in self.heart_hit_list:
             self.life += 100
             if self.life > 200:
                 self.life = 200
                 self.heart.play()
 
-        for block1 in block_hit_list_enemy:
+        for enemy in self.enemy_hit_list:
+            if self.dash_change_x > 0:
+                self.dash_delay = False
+                self.dash = False
+                self.dash_change_x = 0
+                self.rect.right = enemy.rect.left
+            elif self.dash_change_x < 0:
+                self.dash_delay = False
+                self.dash = False
+                self.dash_change_x = 0
+                self.rect.right = enemy.rect.right
             if not self.dano_delay:
-                self.life -= 40
+                self.stop()
+                self.dano()
+                self.delay_dano()
+            #
+            # if not self.dano_delay:
+            #     self.life -= 40
+            #
+            # if self.change_x == 0:
+            #     if self.rect.x < enemy.rect.x:
+            #         # self.rect.right = block1.rect.left - 1
+            #         if not self.dano_delay:
+            #             self.dano()
+            #             self.delay_dano()
+            #     else:
+            #         # self.rect.left = block1.rect.right + 1
+            #         if not self.dano_delay:
+            #             self.dano()
+            #             self.delay_dano()
+            # if self.change_x > 0:
+            #     # self.rect.right = block1.rect.left
+            #     if not self.dano_delay:
+            #         self.dano()
+            #         self.delay_dano()
+            # if self.change_x < 0:
+            #     # self.rect.left = block1.rect.right
+            #     if not self.dano_delay:
+            #         self.dano()
+            #         self.delay_dano()
 
-            if self.change_x == 0:
-                if self.rect.x < block1.rect.x:
-                    self.rect.right = block1.rect.left - 1
-                    if not self.dano_delay:
-                        self.delay_dano()
-                else:
-                    self.rect.left = block1.rect.right + 1
-                    if not self.dano_delay:
-                        self.delay_dano()
-            if self.change_x > 0:
-                self.rect.right = block1.rect.left
-                if not self.dano_delay:
-                    self.delay_dano()
-            if self.change_x < 0:
-                self.rect.left = block1.rect.right
-                if not self.dano_delay:
-                    self.delay_dano()
-
-
-        for block in block_hit_list:
+        for platform in self.platform_hit_list:
             # If we are moving right,
             # set our right side to the left side of the item we hit
             if self.change_x > 0:
-                self.rect.right = block.rect.left
-
-            if self.change_x < 0:
+                self.rect.right = platform.rect.left
+            elif self.change_x < 0:
                 # Otherwise if we are moving left, do the opposite.
-                self.rect.left = block.rect.right
+                self.rect.left = platform.rect.right
 
             if self.dash_change_x > 0:
-                self.rect.right = block.rect.left
+                self.rect.right = platform.rect.left
+            elif self.dash_change_x < 0:
+                self.rect.left = platform.rect.right
 
-            if self.dash_change_x < 0:
-                self.rect.left = block.rect.right
+            if self.change_x2 > 0:
+                self.rect.right = platform.rect.left
+            elif self.change_x2 < 0:
+                self.rect.left = platform.rect.right
 
         # Move up/down
         if not self.dash:
             self.rect.y += self.change_y
-
-        block_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
-        block_hit_list_enemy = pygame.sprite.spritecollide(self, self.level.enemy_list, False)
+            self.rect.y += self.change_y2
+        self.platform_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
+        # block_hit_list_enemy = pygame.sprite.spritecollide(self, self.level.enemy_list, False)
 
         # Check and see if we hit anything
-        for block in block_hit_list:
+        for platform in self.platform_hit_list:
 
             # Reset our position based on the top/bottom of the object.
             if self.change_y > 0:
-                self.rect.bottom = block.rect.top
+                self.rect.bottom = platform.rect.top
             elif self.change_y < 0:
-                self.rect.top = block.rect.bottom
+                self.rect.top = platform.rect.bottom
+
+            if self.change_y2 > 0:
+                self.rect.bottom = platform.rect.top
+            # elif self.change_y2 < 0:
+            #     self.rect.top = platform.rect.bottom
 
             # Stop our vertical movement
             self.change_y = 0
 
-        for block1 in block_hit_list_enemy:
-            if block1.type == 2:
+        # for block1 in block_hit_list_enemy:
+        #     if block1.type == 2:
                 # Reset our position based on the top/bottom of the object.
                 # if self.change_y > 0:
                 #     self.rect.bottom = block.rect.top
-                if self.change_y < 0:
-                    self.rect.top = block1.rect.bottom
+                # if self.change_y < 0:
+                #     self.rect.top = block1.rect.bottom
 
             # Stop our vertical movement
-            self.change_y = 0
+            # self.change_y = 0
 
-        for _ in spike_hit_list:
+        for spike in self.spike_hit_list:
             if not self.dano_delay:
-                self.life -= 60
+                # self.life -= 60
                 self.delay_dano()
                 self.spike.play()
+
+        for hitbox in self.hitbox_enemy:
+            if not self.dano_delay:
+                # self.life -= 60
+                self.delay_dano()
+                self.dano()
+
+    def dano(self):
+        self.tomando_dano = True
+        self.change_y = 0
+        self.change_x = 0
+        if self.facing == 'right':
+            self.change_x2 += -5
+            self.change_y2 += -3
+        else:
+            self.change_x2 += 5
+            self.change_y2 += -3
 
     def calc_grav(self):
         """ Calculate effect of gravity. """
@@ -452,11 +499,11 @@ class Player(pygame.sprite.Sprite):
         if self.melee_atk and not self.melee_delay:
             self.ataque_1.play()
             if self.facing == 'right':
-                hitbox = MeleeHitbox(self.rect.right, self.rect.y)
+                hitbox = Hit_Box(self.rect.centerx, self.rect.y, 60, 80, self)
                 self.level.melee_hitbox_list.add(hitbox)
                 self.delay_melee()
             else:
-                hitbox = MeleeHitbox((self.rect.left - 50), self.rect.y)
+                hitbox = Hit_Box((self.rect.centerx - 30), self.rect.y, 60, 80, self)
                 self.level.melee_hitbox_list.add(hitbox)
                 self.delay_melee()
 
@@ -465,10 +512,11 @@ class Player(pygame.sprite.Sprite):
             self.dash_limit = True
         pygame.time.set_timer(pygame.USEREVENT+5, 400)
         if self.dash:
+            self.change_x = 0
             if self.facing == 'right':
-                self.dash_change_x = 20
+                self.dash_change_x += 20
             else:
-                self.dash_change_x = -20
+                self.dash_change_x += -20
 
     # Player-controlled movement:
     def go_left(self):
@@ -494,14 +542,30 @@ class Heart(pygame.sprite.Sprite):
         self.rect.y = y
 
 
-class MeleeHitbox(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+class Hit_Box(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h, dono):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((40, 80))
-        # self.image.fill(RED)
+        self.dono = dono
+        self.radius = 40
+        self.image = pygame.Surface((w, h))
+        self.image.fill(RED)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.life = 0
+
+
+class Hit_Box_Inimigo(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h, dono):
+        pygame.sprite.Sprite.__init__(self)
+        self.dono = dono
+        self.radius = 70
+        self.image = pygame.Surface((w, h))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.life = 0
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -620,7 +684,9 @@ class Spike(pygame.sprite.Sprite):
 class Aranha(pygame.sprite.Sprite):
     def __init__(self, x, y, min_y, max_y):
         pygame.sprite.Sprite.__init__(self)
-        self.radius = 30
+        self.life = 1
+        self.delay_dano = False
+        self.radius = 40
         self.pos_y_inicial = y
         # self.load_img()
         self.type = 2
@@ -672,7 +738,7 @@ class Aranha(pygame.sprite.Sprite):
 
             # if self.rect.top < self.min_y:
             self.change_y += 0.5
-            if self.rect.bottom > self.player_y:
+            if self.rect.bottom > self.player_y + 50:
                 self.change_y = -5
         else:
             if self.rect.top > 0:
@@ -680,11 +746,16 @@ class Aranha(pygame.sprite.Sprite):
             else:
                 self.change_y = 0
 
+    def dano_delay(self):
+        pass
+
 
 class Escaravelho(pygame.sprite.Sprite):
     def __init__(self, x, y, min_x, max_x):
         super().__init__()
-        self.radius = 20
+        self.life = 1
+        self.delay_dano = False
+        self.radius = 25
         self.type = 1
         self.walking_right = []
         self.walking_left = []
@@ -736,6 +807,187 @@ class Escaravelho(pygame.sprite.Sprite):
             self.facing = 'right'
         else:
             self.facing = 'left'
+
+    def dano_delay(self):
+        pass
+
+
+class Esqueleto(pygame.sprite.Sprite):
+    def __init__(self, x, y, min_x, max_x):
+        super().__init__()
+        self.idle_right = []
+        self.idle_left = []
+        self.walking_right = []
+        self.walking_left = []
+        self.attack_right = []
+        self.attack_left = []
+        self.hit_right = []
+        self.hit_left = []
+        self.die_right = []
+        self.die_left = []
+        self.idle = True
+        self.walking = False
+        self.attack = False
+        self.hit = False
+        self.die = False
+        self.delay_attack = False
+        self.delay_dano = False
+        self.radius = 30
+        self.type = 3
+        self.life = 100
+        self.load_img()
+        self.image = pygame.transform.scale(pygame.image.load('img/skeleton_idle_000.png').convert(), (80, 100))
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.facing = 'left'
+        self.pos_x = self.rect.x
+        self.change_x = 0
+        self.change_y = 0
+        self.player_x = 0
+        self.player_y = 0
+        self.min_x = 0
+        self.max_x = 0
+        self.current_frame = 0
+        self.last_update = 0
+        self.action = False
+        self.mostrar_barra = False
+
+    def load_img(self):
+        for frame in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_idle_00{}.png'.format(frame)). convert_alpha(), (80, 105))
+            self.idle_right.append(img)
+        for frame in range(0, 5):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_idle_01{}.png'.format(frame)). convert_alpha(), (80, 105))
+            self.idle_right.append(img)
+        for frame in self.idle_right:
+            self.idle_left.append(pygame.transform.flip(frame, True, False))
+
+        for frame in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_walking_00{}.png'.format(frame)). convert_alpha(), (100, 105))
+            self.walking_right.append(img)
+        for frame in range(0, 5):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_walking_01{}.png'.format(frame)). convert_alpha(), (100, 105))
+            self.walking_right.append(img)
+        for frame in self.walking_right:
+            self.walking_left.append(pygame.transform.flip(frame, True, False))
+
+        for frame in range(0, 8):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_attack_00{}.png'.format(frame)). convert_alpha(), (140, 115))
+            self.attack_right.append(img)
+        for frame in self.attack_right:
+            self.attack_left.append(pygame.transform.flip(frame, True, False))
+
+        for frame in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_hit_00{}.png'.format(frame)). convert_alpha(), (120, 100))
+            self.hit_right.append(img)
+        for frame in range(0, 5):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_hit_01{}.png'.format(frame)). convert_alpha(), (120, 100))
+            self.hit_right.append(img)
+        for frame in self.hit_right:
+            self.hit_left.append(pygame.transform.flip(frame, True, False))
+
+        for frame in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_die_00{}.png'.format(frame)). convert_alpha(), (80, 100))
+            self.die_right.append(img)
+        for frame in self.die_right:
+            self.die_left.append(pygame.transform.flip(frame, True, False))
+
+    def animate(self):
+        now = pygame.time.get_ticks()
+        if self.idle:
+            if self.facing == 'left':
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.idle_left)
+                    self.image = self.idle_left[self.current_frame]
+            else:
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.idle_right)
+                    self.image = self.idle_right[self.current_frame]
+        if self.walking:
+            if self.facing == 'left':
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.walking_left)
+                    self.image = self.walking_left[self.current_frame]
+            else:
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.walking_right)
+                    self.image = self.walking_right[self.current_frame]
+        if self.attack:
+            if self.facing == 'left':
+                if now - self.last_update > 80:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.attack_left)
+                    self.image = self.attack_left[self.current_frame]
+            else:
+                if now - self.last_update > 80:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.attack_right)
+                    self.image = self.attack_right[self.current_frame]
+        if self.hit:
+            if self.facing == 'left':
+                if now - self.last_update > 30:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.hit_left)
+                    self.image = self.hit_left[self.current_frame]
+            else:
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.hit_right)
+                    self.image = self.hit_right[self.current_frame]
+        if self.die:
+            if self.facing == 'left':
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.die_left)
+                    self.image = self.die_left[self.current_frame]
+            else:
+                if now - self.last_update > 50:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.die_right)
+                    self.image = self.die_right[self.current_frame]
+
+    def update(self):
+        self.animate()
+        self.rect.x += self.change_x
+        self.rect.y += self.change_y
+
+        if not self.delay_attack and not self.delay_dano:
+            if self.action:
+                self.idle = False
+                self.walking = True
+                if self.facing == 'right':
+                    self.change_x = 1
+                else:
+                    self.change_x = -1
+            else:
+                self.walking = False
+                self.idle = True
+                self.change_x = 0
+        else:
+            self.walking = False
+            self.change_x = 0
+
+    def dano_delay(self):
+        self.idle = False
+        self.hit = True
+        self.walking = False
+        self.attack = False
+        self.delay_dano = True
+        self.mostrar_barra = True
+        pygame.time.set_timer(pygame.USEREVENT + 7, 500)
+
+    def attack_delay(self):
+        self.idle = False
+        self.walking = False
+        self.attack = True
+        self.delay_attack = True
+        pygame.time.set_timer(pygame.USEREVENT - 1, 500)
 
 
 class Tocha(pygame.sprite.Sprite):
@@ -844,21 +1096,27 @@ class Level(pygame.sprite.Sprite):
         """ Constructor. Pass in a handle to player. Needed for when moving
             platforms collide with the player. """
         pygame.sprite.Sprite.__init__(self)
-
+        # Adiciona os grupos de sprites em listas
         self.platform_list = pygame.sprite.Group()
         self.spike_list = pygame.sprite.Group()
+        self.heart_list = pygame.sprite.Group()
+        self.bullet_list = pygame.sprite.Group()
+        self.melee_hitbox_list = pygame.sprite.Group()
+        self.hitbox_attack_inimigo = pygame.sprite.Group()
+        self.enemy_list = pygame.sprite.Group()
+        self.limitador1_lista = pygame.sprite.Group()
         self.tocha_lista = pygame.sprite.Group()
         self.luz_lista = pygame.sprite.Group()
         self.poder_lista = pygame.sprite.Group()
 
+        # Carrega o arquivo tmx do Tiledmap Editor
         game_folder = path.dirname(__file__)
         map_folder = path.join(game_folder, 'maps')
         self.map = TiledMap(path.join(map_folder, 'level1.tmx'))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
-        self.enemy_list = pygame.sprite.Group()
-        self.limitador1_lista = pygame.sprite.Group()
 
+        # Adiciona nas respectivas listas os objetos presentes no arquivo tmx
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "plataforma":
                 self.platform_list.add(Obstacle(tile_object.x, tile_object.y,
@@ -877,15 +1135,15 @@ class Level(pygame.sprite.Sprite):
                                            tile_object.width, tile_object.height))
             if tile_object.name == "tocha":
                 self.tocha_lista.add(Tocha(tile_object.x, tile_object.y))
-
         for tocha in self.tocha_lista:
             self.luz_lista.add(Luz(tocha.rect.x - 110, tocha.rect.y - 100))
 
+        # As imagens são carregadas normalmente, não diretamente do arquivo tmx
         self.image = pygame.image.load('maps/level1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = 0
         self.rect.y = 0
-
+        # Cada imagem é carregada separadamente e recebe um rect para formar uma camada e para fazer o efeito parallax
         self.image2 = pygame.image.load('maps/level1-2.png').convert_alpha()
         self.rect2 = self.image2.get_rect()
         self.rect2.x = -2000
@@ -907,32 +1165,26 @@ class Level(pygame.sprite.Sprite):
         self.hitbox_in_enemy = []
         self.enemy_hit_limitador = []
 
-        self.heart_list = pygame.sprite.Group()
-
-        self.bullet_list = pygame.sprite.Group()
-        self.melee_hitbox_list = pygame.sprite.Group()
-
         self.player = player
         self.last_update = 0
         self.changes_x, self.changes_y = 0, 0
         self.player_pos_x, self.player_pos_y = 0, 0
         # How far this world has been scrolled left/right
         self.world_shift = 0
-
+        # Sons
         self.faca_3 = pygame.mixer.Sound('sfx/faca_3.wav')
         self.faca_4 = pygame.mixer.Sound('sfx/faca_4.wav')
 
-    # Update everything on this level
     def update(self):
-        """ Update everything in this level."""
+        # Atualiza tudo presente no level
         self.heart_list.update()
         self.platform_list.update()
         self.enemy_list.update()
         self.bullet_list.update()
         self.melee_hitbox_list.update()
+        self.hitbox_attack_inimigo.update()
         self.spike_list.update()
         self.limitador1_lista.update()
-
         self.tocha_lista.update()
         self.poder_lista.update()
 
@@ -948,7 +1200,8 @@ class Level(pygame.sprite.Sprite):
         self.hits_enemy = pygame.sprite.groupcollide(self.bullet_list, self.enemy_list, True, True,
                                                      pygame.sprite.collide_circle)
         self.hits_platform = pygame.sprite.groupcollide(self.platform_list, self.bullet_list, False, True)
-        self.hitbox_in_enemy = pygame.sprite.groupcollide(self.melee_hitbox_list, self.enemy_list, False, True)
+        self.hitbox_in_enemy = pygame.sprite.groupcollide(self.enemy_list, self.melee_hitbox_list, False, False,
+                                                          pygame.sprite.collide_circle)
         self.enemy_hit_platform = pygame.sprite.groupcollide(self.enemy_list, self.platform_list, False, False)
         self.enemy_hit_limitador = pygame.sprite.groupcollide(self.enemy_list, self.limitador1_lista, False, False)
 
@@ -956,14 +1209,29 @@ class Level(pygame.sprite.Sprite):
         for hit in self.hits_enemy or self.hits_platform:
             self.faca_3.play()
 
-        # Física dos escaravelhos
-        for escaravelho in self.enemy_hit_limitador:
-            if escaravelho.type == 1:
-                escaravelho.change_x = escaravelho.change_x * -1
+        for enemy in self.hitbox_in_enemy:
+            if not enemy.delay_dano:
+                enemy.life -= 25
+                enemy.dano_delay()
 
-        for escaravelho in self.enemy_hit_platform:
-            if escaravelho.type == 1:
-                escaravelho.rect.y -= 1
+        for enemy in self.enemy_list:
+            if not enemy.life > 0:
+                self.enemy_list.remove(enemy)
+
+        # Lógica dos escaravelhos e esqueletos é ativada ao encostar em um limitador do arquivo tmx
+        for enemy in self.enemy_hit_limitador:
+            if enemy.type == 1:
+                enemy.change_x = enemy.change_x * -1
+            if enemy.type == 3:
+                if enemy.facing == 'right':
+                    enemy.change_x += -1
+                else:
+                    enemy.change_x += 1
+
+        # Corrige inimigos "enterrados" nas plataformas
+        for enemy in self.enemy_hit_platform:
+            if enemy.type == 1 or 3:
+                enemy.rect.y -= 1
 
         # Se a aranha bate em uma plataforma, para seu movimento
         for aranha in self.enemy_hit_platform:
@@ -978,12 +1246,41 @@ class Level(pygame.sprite.Sprite):
                 else:
                     aranha.action = False
 
+        for esqueleto in self.enemy_list:
+            if esqueleto.type == 3:
+                if esqueleto.rect.x < self.player_pos_x:
+                    esqueleto.facing = 'right'
+                else:
+                    esqueleto.facing = 'left'
+
+                if not esqueleto.delay_attack:
+                    self.hitbox_attack_inimigo.empty()
+
+                if esqueleto.rect.x - self.player_pos_x < 20 and self.player_pos_x < esqueleto.rect.x + 150\
+                   and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
+                    esqueleto.idle = False
+                    esqueleto.walking = False
+                    esqueleto.change_x = 0
+                    esqueleto.attack = True
+                    esqueleto.attack_delay()
+                    self.hitbox_attack_inimigo.add(Hit_Box_Inimigo(esqueleto.rect.centerx, esqueleto.rect.centery, 60, 60, esqueleto))
+                # else:
+                #     self.hitbox_attack_inimigo.empty()
+                #     esqueleto.attack = False
+
+                if esqueleto.rect.x - self.player_pos_x < 400 and self.player_pos_x < esqueleto.rect.x + 400\
+                   and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
+                    esqueleto.action = True
+                else:
+                    esqueleto.action = False
+
     def draw(self, screen):
         """ Draw everything on this level. """
         # Draw the background
         # Draw all the sprite lists that we have
         self.platform_list.draw(screen)
         self.melee_hitbox_list.draw(screen)
+        self.hitbox_attack_inimigo.draw(screen)
         self.spike_list.draw(screen)
         screen.fill(BLACK)
 
@@ -1002,7 +1299,12 @@ class Level(pygame.sprite.Sprite):
         self.bullet_list.draw(screen)
 
         draw_HUD_bar(screen, 0, 0)
-        draw_life_bar(screen, 50, 20, self.player.life)
+        draw_life_bar(screen, 50, 20, 200, 20, GREEN, self.player.life)
+
+        for enemy in self.enemy_list:
+            if enemy.type == 3 and enemy.mostrar_barra:
+                draw_life_bar(screen, enemy.rect.x, enemy.rect.y, 100, 10, RED, enemy.life)
+
         self.heart_list.draw(screen)
         self.poder_lista.draw(screen)
 
@@ -1011,10 +1313,16 @@ class Level(pygame.sprite.Sprite):
         print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 10)
 
         # Teste de hitbox com círculos
+        # for hitbox in self.melee_hitbox_list:
+        #     pygame.draw.circle(screen, RED, hitbox.rect.center, hitbox.radius)
+        #     # pygame.draw.rect(screen, RED, hitbox.rect)
+        # for hitbox2 in self.hitbox_attack_inimigo:
+        #     pygame.draw.circle(screen, RED, hitbox2.rect.center, hitbox2.radius)
         # for bullet in self.bullet_list:
         #     pygame.draw.circle(screen, RED, bullet.rect.center, bullet.radius)
         # for enemy in self.enemy_list:
         #     pygame.draw.circle(screen, RED, enemy.rect.center, enemy.radius)
+        # pygame.draw.circle(screen, RED, (self.player_pos_x, self.player_pos_y), 25)
 
         self.tocha_lista.draw(screen)
         self.luz_lista.draw(screen)
@@ -1045,6 +1353,8 @@ class Level(pygame.sprite.Sprite):
             spike.rect.x += shift_x
         for hitbox in self.melee_hitbox_list:
             hitbox.rect.x += shift_x
+        for hitbox2 in self.hitbox_attack_inimigo:
+            hitbox2.rect.x += shift_x
         for limitador in self.limitador1_lista:
             limitador.rect.x += shift_x
         for tocha in self.tocha_lista:
@@ -1053,6 +1363,7 @@ class Level(pygame.sprite.Sprite):
             luz.rect.x += shift_x
         for poder in self.poder_lista:
             poder.rect.x += shift_x
+
 
 # Create platforms for the level
 class Level01(Level):
@@ -1063,7 +1374,7 @@ class Level01(Level):
 
         # Call the parent constructor
         Level.__init__(self, player)
-        self.level_limit = -300
+        self.level_limit = -8000
 
         # Array with width, height, x, and y of platform
         level = [
@@ -1104,6 +1415,9 @@ class Level01(Level):
         self.heart_list.add(Heart(1900, 630))
 
         self.poder_lista.add(Poder(1800, 630))
+
+        self.enemy_list.add(Esqueleto(2000, 630, 0, 0))
+
 
 # Create platforms for the level
 class Level02(Level):
@@ -1315,7 +1629,6 @@ def main():
     """ Main Program """
     pygame.init()
 
-
     # screen = pygame.display.set_mode(size)
 
     pygame.display.set_caption("Super Hero Mummy: Ramsés")
@@ -1333,7 +1646,7 @@ def main():
     active_sprite_list = pygame.sprite.Group()
 
     player.level = current_level
-    player.rect.x = 628
+    player.rect.x = 200
     player.rect.y = 600
 
     active_sprite_list.add(player)
@@ -1386,16 +1699,17 @@ def main():
 
             # Joystick buttons:
             if event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0:
+                if event.button == 0 and not player.dash_delay and not player.tomando_dano:
                     player.jump()
-                if event.button == 1 and not player.melee_atk and not player.dash_delay and not player.dash_limit:
+                if event.button == 1 and not player.melee_atk and not player.dash_delay \
+                        and not player.dash_limit and not player.tomando_dano:
                     player.dash = True
                     player.do_dash()
                     player.delay_dash()
-                if event.button == 2 and not player.dash:
+                if event.button == 2 and not player.dash and not player.tomando_dano:
                     player.melee_atk = True
                     player.melee()
-                if event.button == 3:
+                if event.button == 3 and not player.attacking and not player.tomando_dano:
                     player.attacking = True
                     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
                     player.shoot()
@@ -1404,7 +1718,11 @@ def main():
                 player.attacking = False
             if event.type == pygame.USEREVENT+2:
                 player.dano_delay = False
+                player.tomando_dano = False
+                player.change_x2 = 0
+                player.change_y2 = 0
             if event.type == pygame.USEREVENT+3:
+                player.attacking = False
                 player.attack_delay = False
             if event.type == pygame.USEREVENT+4:
                 player.melee_atk = False
@@ -1414,6 +1732,15 @@ def main():
                 player.dash_change_x = 0
             if event.type == pygame.USEREVENT+6:
                 player.dash_delay = False
+            if event.type == pygame.USEREVENT+7:
+                for enemy in current_level.enemy_list:
+                    enemy.hit = False
+                    enemy.idle = True
+                    enemy.delay_dano = False
+                    enemy.mostrar_barra = False
+            if event.type == pygame.USEREVENT-1:
+                for enemy in current_level.enemy_list:
+                    enemy.delay_attack = False
 
         # Joystick analog:
         joystick_count = pygame.joystick.get_count()
@@ -1462,19 +1789,19 @@ def main():
             current_level.shift_world(-diff)
 
         # If the player gets near the left side, shift the world right (+x)
-        if player.rect.left <= 453:
+        if player.rect.left <= 453 and current_level.world_shift < 0:
             diff = 453 - player.rect.left
             player.rect.left = 453
             current_level.shift_world(diff)
 
         # If the player gets to the end of the level, go to the next level
-        # current_position = player.rect.x + current_level.world_shift
-        # if current_position < current_level.level_limit:
-        #     player.rect.x = 120
-        #     if current_level_no < len(level_list) - 1:
-        #         current_level_no += 1
-        #         current_level = level_list[current_level_no]
-        #         player.level = current_level
+        current_position = player.rect.x + current_level.world_shift
+        if current_position < current_level.level_limit:
+            player.rect.x = 120
+            if current_level_no < len(level_list) - 1:
+                current_level_no += 1
+                current_level = level_list[current_level_no]
+                player.level = current_level
 
         # Draw the sprites
         current_level.draw(screen)
