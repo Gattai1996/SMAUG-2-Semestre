@@ -87,6 +87,8 @@ class Player(pygame.sprite.Sprite):
         self.image = self.idle_right[0]
         # Set a referance to the image rect.
         self.rect = self.image.get_rect()
+        self.pos_ini_x = 0
+        self.pos_ini_y = 0
         self.radius = 25
         # Set speed vector of player
         self.change_x = 0
@@ -105,6 +107,8 @@ class Player(pygame.sprite.Sprite):
         self.dash_limit = False
         self.level = None
         self.life = 200
+        self.poder = 10
+        self.item = 'faca'
         self.dano_delay = False
         self.attack_delay = False
         self.melee_delay = False
@@ -209,7 +213,7 @@ class Player(pygame.sprite.Sprite):
                     self.current_frame = (self.current_frame + 1) % len(self.melee_left)
                     self.image = self.melee_left[self.current_frame]
 
-        if self.attacking:
+        if self.attacking and self.poder > 0 and not self.attack_delay:
             if now - self.last_update > 50:
                 self.last_update = now
                 if self.facing == 'right':
@@ -319,17 +323,24 @@ class Player(pygame.sprite.Sprite):
         self.enemy_hit_list = pygame.sprite.spritecollide(self, self.level.enemy_list, False,
                                                           pygame.sprite.collide_circle)
         self.heart_hit_list = pygame.sprite.spritecollide(self, self.level.heart_list, True)
+        self.poder_hit_list = pygame.sprite.spritecollide(self, self.level.poder_lista, True)
         self.spike_hit_list = pygame.sprite.spritecollide(self, self.level.spike_list, False)
-        self.hitbox_enemy = pygame.sprite.spritecollide(self, self.level.hitbox_attack_inimigo, False, pygame.sprite.collide_circle)
+        self.hitbox_enemy = pygame.sprite.spritecollide(self, self.level.hitbox_attack_inimigo, False,
+                                                        pygame.sprite.collide_circle)
 
         if not self.melee_delay:
             self.level.melee_hitbox_list.empty()
 
         for heart in self.heart_hit_list:
+            self.heart.play()
             self.life += 100
             if self.life > 200:
                 self.life = 200
-                self.heart.play()
+        for poder in self.poder_hit_list:
+            self.heart.play()
+            self.poder += 3
+            if self.poder > 10:
+                self.poder = 10
 
         for enemy in self.enemy_hit_list:
             if self.dash_change_x > 0:
@@ -480,20 +491,23 @@ class Player(pygame.sprite.Sprite):
             self.change_y = -12
 
     def shoot(self):
-        if self.attacking and not self.attack_delay:
-            self.faca_2.play()
-            if self.facing == 'right':
-                bullet = Bullet(self.rect.centerx, self.rect.top)
-                self.level.bullet_list.add(bullet)
-                self.delay_attack()
-                bullet.speed = 15
-                bullet.facing = 'right'
-            else:
-                bullet = Bullet(self.rect.left, self.rect.top)
-                self.level.bullet_list.add(bullet)
-                self.delay_attack()
-                bullet.speed = -15
-                bullet.facing = 'left'
+        if not self.attack_delay:
+            if self.item == 'faca':
+                if self.poder > 0 and self.attacking:
+                    self.poder -= 1
+                    self.faca_2.play()
+                    if self.facing == 'right':
+                        faca = Faca(self.rect.centerx, self.rect.top)
+                        self.level.faca_lista.add(faca)
+                        self.delay_attack()
+                        faca.speed = 15
+                        faca.facing = 'right'
+                    else:
+                        faca = Faca(self.rect.left, self.rect.top)
+                        self.level.faca_lista.add(faca)
+                        self.delay_attack()
+                        faca.speed = -15
+                        faca.facing = 'left'
 
     def melee(self):
         if self.melee_atk and not self.melee_delay:
@@ -533,13 +547,45 @@ class Player(pygame.sprite.Sprite):
 
 
 class Heart(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, h, w):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.transform.scale(pygame.image.load('img/heart.png').convert_alpha(), (60, 50))
         self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
+
+class Poder(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.image.load('img/poder_000.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.last_update = 0
+        self.current_frame = 0
+        self.imagens = []
+        self.carregar_imagens()
+
+    def carregar_imagens(self):
+        for n in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/poder_00{}.png'.format(n)).convert_alpha(), (50, 50))
+            self.imagens.append(img)
+        for n in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/poder_01{}.png'.format(n)).convert_alpha(), (50, 50))
+            self.imagens.append(img)
+
+    def animacao(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 100:
+            self.last_update = now
+            self.current_frame = (self.current_frame + 1) % len(self.imagens)
+            self.image = self.imagens[self.current_frame]
+
+    def update(self):
+        self.animacao()
 
 
 class Hit_Box(pygame.sprite.Sprite):
@@ -559,7 +605,7 @@ class Hit_Box_Inimigo(pygame.sprite.Sprite):
     def __init__(self, x, y, w, h, dono):
         pygame.sprite.Sprite.__init__(self)
         self.dono = dono
-        self.radius = 70
+        self.radius = 30
         self.image = pygame.Surface((w, h))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
@@ -568,7 +614,7 @@ class Hit_Box_Inimigo(pygame.sprite.Sprite):
         self.life = 0
 
 
-class Bullet(pygame.sprite.Sprite):
+class Faca(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.radius = 30
@@ -990,6 +1036,38 @@ class Esqueleto(pygame.sprite.Sprite):
         pygame.time.set_timer(pygame.USEREVENT - 1, 500)
 
 
+class HighLight(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.image.load('img/high_light_000.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.last_update = 0
+        self.current_frame = 0
+        self.imagens = []
+        self.carregar_imagens()
+
+    def carregar_imagens(self):
+        for n in range(0, 10):
+            img = pygame.transform.scale(pygame.image.load('img/high_light_00{}.png'.format(n)), (100, 100))
+            self.imagens.append(img)
+        for n in range(0, 5):
+            img = pygame.transform.scale(pygame.image.load('img/high_light_00{}.png'.format(n)), (100, 100))
+            self.imagens.append(img)
+
+    def animacao(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 50:
+            self.last_update = now
+            self.current_frame = (self.current_frame + 1) % len(self.imagens)
+            self.image = self.imagens[self.current_frame]
+
+    def update(self):
+        self.animacao()
+
+
 class Tocha(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -1027,38 +1105,6 @@ class Luz(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
-
-class Poder(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-
-        self.image = pygame.image.load('img/poder_000.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.last_update = 0
-        self.current_frame = 0
-        self.imagens = []
-        self.carregar_imagens()
-
-    def carregar_imagens(self):
-        for n in range(0, 10):
-            img = pygame.transform.scale(pygame.image.load('img/poder_00{}.png'.format(n)).convert_alpha(), (50, 50))
-            self.imagens.append(img)
-        for n in range(0, 10):
-            img = pygame.transform.scale(pygame.image.load('img/poder_01{}.png'.format(n)).convert_alpha(), (50, 50))
-            self.imagens.append(img)
-
-    def animacao(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_update > 100:
-            self.last_update = now
-            self.current_frame = (self.current_frame + 1) % len(self.imagens)
-            self.image = self.imagens[self.current_frame]
-
-    def update(self):
-        self.animacao()
 
 
 class TiledMap:
@@ -1100,7 +1146,7 @@ class Level(pygame.sprite.Sprite):
         self.platform_list = pygame.sprite.Group()
         self.spike_list = pygame.sprite.Group()
         self.heart_list = pygame.sprite.Group()
-        self.bullet_list = pygame.sprite.Group()
+        self.faca_lista = pygame.sprite.Group()
         self.melee_hitbox_list = pygame.sprite.Group()
         self.hitbox_attack_inimigo = pygame.sprite.Group()
         self.enemy_list = pygame.sprite.Group()
@@ -1108,56 +1154,6 @@ class Level(pygame.sprite.Sprite):
         self.tocha_lista = pygame.sprite.Group()
         self.luz_lista = pygame.sprite.Group()
         self.poder_lista = pygame.sprite.Group()
-
-        # Carrega o arquivo tmx do Tiledmap Editor
-        game_folder = path.dirname(__file__)
-        map_folder = path.join(game_folder, 'maps')
-        self.map = TiledMap(path.join(map_folder, 'level1.tmx'))
-        self.map_img = self.map.make_map()
-        self.map_rect = self.map_img.get_rect()
-
-        # Adiciona nas respectivas listas os objetos presentes no arquivo tmx
-        for tile_object in self.map.tmxdata.objects:
-            if tile_object.name == "plataforma":
-                self.platform_list.add(Obstacle(tile_object.x, tile_object.y,
-                                                tile_object.width, tile_object.height))
-            if tile_object.name == "espinhos":
-                self.spike_list.add(Espinhos(tile_object.x, tile_object.y,
-                                             tile_object.width, tile_object.height))
-            if tile_object.name == "escaravelho":
-                self.enemy_list.add(Escaravelho(tile_object.x, tile_object.y,
-                                                tile_object.width, tile_object.height))
-            if tile_object.name == "limitador1":
-                self.limitador1_lista.add(Limitador(tile_object.x, tile_object.y,
-                                                    tile_object.width, tile_object.height))
-            if tile_object.name == "aranha":
-                self.enemy_list.add(Aranha(tile_object.x, tile_object.y,
-                                           tile_object.width, tile_object.height))
-            if tile_object.name == "tocha":
-                self.tocha_lista.add(Tocha(tile_object.x, tile_object.y))
-        for tocha in self.tocha_lista:
-            self.luz_lista.add(Luz(tocha.rect.x - 110, tocha.rect.y - 100))
-
-        # As imagens são carregadas normalmente, não diretamente do arquivo tmx
-        self.image = pygame.image.load('maps/level1.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.x = 0
-        self.rect.y = 0
-        # Cada imagem é carregada separadamente e recebe um rect para formar uma camada e para fazer o efeito parallax
-        self.image2 = pygame.image.load('maps/level1-2.png').convert_alpha()
-        self.rect2 = self.image2.get_rect()
-        self.rect2.x = -2000
-        self.rect2.y = 0
-
-        self.image3 = pygame.image.load('maps/level1-3.png').convert_alpha()
-        self.rect3 = self.image3.get_rect()
-        self.rect3.x = -2000
-        self.rect3.y = 0
-
-        self.image4 = pygame.image.load('maps/level1-4.png').convert_alpha()
-        self.rect4 = self.image4.get_rect()
-        self.rect4.x = -2000
-        self.rect4.y = 0
 
         self.enemy_hit_platform = []
         self.hits_enemy = []
@@ -1180,36 +1176,38 @@ class Level(pygame.sprite.Sprite):
         self.heart_list.update()
         self.platform_list.update()
         self.enemy_list.update()
-        self.bullet_list.update()
+        self.faca_lista.update()
         self.melee_hitbox_list.update()
         self.hitbox_attack_inimigo.update()
         self.spike_list.update()
         self.limitador1_lista.update()
         self.tocha_lista.update()
+        self.luz_lista.update()
         self.poder_lista.update()
 
-        for bullet in self.bullet_list:
-            if bullet.rect.x > SCREEN_WIDTH or bullet.rect.x < -20:
-                self.bullet_list.remove(bullet)
+        for faca in self.faca_lista:
+            if faca.rect.x > SCREEN_WIDTH or faca.rect.x < -20:
+                self.faca_lista.remove(faca)
+            if faca.rect.y > SCREEN_HEIGHT + 50 or faca.rect.y < 0:
+                self.faca_lista.remove(faca)
 
         # hitbox get the position of the player
         for hitbox in self.melee_hitbox_list:
             hitbox.rect.x += self.changes_x
             hitbox.rect.y += self.changes_y
 
-        self.hits_enemy = pygame.sprite.groupcollide(self.bullet_list, self.enemy_list, True, True,
+        self.hits_enemy = pygame.sprite.groupcollide(self.enemy_list, self.faca_lista, False, True,
                                                      pygame.sprite.collide_circle)
-        self.hits_platform = pygame.sprite.groupcollide(self.platform_list, self.bullet_list, False, True)
         self.hitbox_in_enemy = pygame.sprite.groupcollide(self.enemy_list, self.melee_hitbox_list, False, False,
                                                           pygame.sprite.collide_circle)
         self.enemy_hit_platform = pygame.sprite.groupcollide(self.enemy_list, self.platform_list, False, False)
         self.enemy_hit_limitador = pygame.sprite.groupcollide(self.enemy_list, self.limitador1_lista, False, False)
 
         # Se alguma faca bater em algo, toca o som
-        for hit in self.hits_enemy or self.hits_platform:
+        for hit in self.hits_enemy:
             self.faca_3.play()
 
-        for enemy in self.hitbox_in_enemy:
+        for enemy in self.hits_enemy or self.hitbox_in_enemy:
             if not enemy.delay_dano:
                 enemy.life -= 25
                 enemy.dano_delay()
@@ -1224,9 +1222,9 @@ class Level(pygame.sprite.Sprite):
                 enemy.change_x = enemy.change_x * -1
             if enemy.type == 3:
                 if enemy.facing == 'right':
-                    enemy.change_x += -1
+                    enemy.change_x = -2
                 else:
-                    enemy.change_x += 1
+                    enemy.change_x = 2
 
         # Corrige inimigos "enterrados" nas plataformas
         for enemy in self.enemy_hit_platform:
@@ -1256,20 +1254,27 @@ class Level(pygame.sprite.Sprite):
                 if not esqueleto.delay_attack:
                     self.hitbox_attack_inimigo.empty()
 
-                if esqueleto.rect.x - self.player_pos_x < 20 and self.player_pos_x < esqueleto.rect.x + 150\
-                   and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
-                    esqueleto.idle = False
-                    esqueleto.walking = False
-                    esqueleto.change_x = 0
-                    esqueleto.attack = True
-                    esqueleto.attack_delay()
-                    self.hitbox_attack_inimigo.add(Hit_Box_Inimigo(esqueleto.rect.centerx, esqueleto.rect.centery, 60, 60, esqueleto))
-                # else:
-                #     self.hitbox_attack_inimigo.empty()
-                #     esqueleto.attack = False
+                if esqueleto.facing == 'left':
+                    if esqueleto.rect.x - self.player_pos_x < 20 and self.player_pos_x < esqueleto.rect.x + 150\
+                       and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
+                        esqueleto.idle = False
+                        esqueleto.walking = False
+                        esqueleto.change_x = 0
+                        esqueleto.attack = True
+                        esqueleto.attack_delay()
+                        self.hitbox_attack_inimigo.add(Hit_Box_Inimigo(esqueleto.rect.x, esqueleto.rect.y, 60, 60, esqueleto))
+                else:
+                    if esqueleto.rect.x - self.player_pos_x < 20 and self.player_pos_x < esqueleto.rect.x + 100\
+                       and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
+                        esqueleto.idle = False
+                        esqueleto.walking = False
+                        esqueleto.change_x = 0
+                        esqueleto.attack = True
+                        esqueleto.attack_delay()
+                        self.hitbox_attack_inimigo.add(Hit_Box_Inimigo(esqueleto.rect.right, esqueleto.rect.y, 60, 60, esqueleto))
 
-                if esqueleto.rect.x - self.player_pos_x < 400 and self.player_pos_x < esqueleto.rect.x + 400\
-                   and esqueleto.rect.y - self.player_pos_y < 50 and self.player_pos_y < esqueleto.rect.y + 50:
+                if esqueleto.rect.x - self.player_pos_x < 600 and self.player_pos_x < esqueleto.rect.x + 600\
+                   and esqueleto.rect.y - self.player_pos_y < 80 and self.player_pos_y < esqueleto.rect.y + 80:
                     esqueleto.action = True
                 else:
                     esqueleto.action = False
@@ -1296,7 +1301,7 @@ class Level(pygame.sprite.Sprite):
                                  (aranha.rect.centerx, aranha.rect.centery), 5)
 
         self.enemy_list.draw(screen)
-        self.bullet_list.draw(screen)
+        self.faca_lista.draw(screen)
 
         draw_HUD_bar(screen, 0, 0)
         draw_life_bar(screen, 50, 20, 200, 20, GREEN, self.player.life)
@@ -1305,12 +1310,10 @@ class Level(pygame.sprite.Sprite):
             if enemy.type == 3 and enemy.mostrar_barra:
                 draw_life_bar(screen, enemy.rect.x, enemy.rect.y, 100, 10, RED, enemy.life)
 
-        self.heart_list.draw(screen)
-        self.poder_lista.draw(screen)
-
         # Draw text on the screen
         print_in_screen(screen, 'Level   1-1', 20, SCREEN_WIDTH / 2, 10)
-        print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 10)
+        print_in_screen(screen, str(self.player.poder), 20, SCREEN_WIDTH - 50, 10)
+        print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 100)
 
         # Teste de hitbox com círculos
         # for hitbox in self.melee_hitbox_list:
@@ -1326,6 +1329,9 @@ class Level(pygame.sprite.Sprite):
 
         self.tocha_lista.draw(screen)
         self.luz_lista.draw(screen)
+
+        self.heart_list.draw(screen)
+        self.poder_lista.draw(screen)
 
     def shift_world(self, shift_x):
         """ When the user moves left/right and we need to scroll
@@ -1347,7 +1353,7 @@ class Level(pygame.sprite.Sprite):
             enemy.rect.x += shift_x
             enemy.min_x += shift_x
             enemy.max_x += shift_x
-        for bullet in self.bullet_list:
+        for bullet in self.faca_lista:
             bullet.rect.x += shift_x
         for spike in self.spike_list:
             spike.rect.x += shift_x
@@ -1364,101 +1370,96 @@ class Level(pygame.sprite.Sprite):
         for poder in self.poder_lista:
             poder.rect.x += shift_x
 
+    def carregar_tmx(self, num_level):
+        # Carrega o arquivo tmx do Tiledmap Editor
+        game_folder = path.dirname(__file__)
+        map_folder = path.join(game_folder, 'maps')
+        self.map = TiledMap(path.join(map_folder, 'level{}.tmx'.format(num_level)))
+        self.map_img = self.map.make_map()
+        self.map_rect = self.map_img.get_rect()
+
+        # Adiciona nas respectivas listas os objetos presentes no arquivo tmx
+        for tile_object in self.map.tmxdata.objects:
+            if tile_object.name == "player":
+                self.player.pos_ini_x = tile_object.x
+                self.player.pos_ini_y = tile_object.y
+            # if tile_object.name == "porta":
+            #     self.porta_lista.add(Porta(tile_object.x, tile_object.y,
+            #                                tile_object.width, tile_object.height))
+            if tile_object.name == "plataforma":
+                self.platform_list.add(Obstacle(tile_object.x, tile_object.y,
+                                                tile_object.width, tile_object.height))
+            if tile_object.name == 'vida':
+                self.heart_list.add(Heart(tile_object.x, tile_object.y,
+                                          tile_object.width, tile_object.height))
+            if tile_object.name == 'poder':
+                self.poder_lista.add(Poder(tile_object.x, tile_object.y,
+                                           tile_object.width, tile_object.height))
+            if tile_object.name == "espinhos":
+                self.spike_list.add(Espinhos(tile_object.x, tile_object.y,
+                                             tile_object.width, tile_object.height))
+            if tile_object.name == "escaravelho":
+                self.enemy_list.add(Escaravelho(tile_object.x, tile_object.y,
+                                                tile_object.width, tile_object.height))
+            if tile_object.name == "aranha":
+                self.enemy_list.add(Aranha(tile_object.x, tile_object.y,
+                                           tile_object.width, tile_object.height))
+            if tile_object.name == "esqueleto":
+                self.enemy_list.add(Esqueleto(tile_object.x, tile_object.y,
+                                              tile_object.width, tile_object.height))
+            if tile_object.name == "limitador1":
+                self.limitador1_lista.add(Limitador(tile_object.x, tile_object.y,
+                                                    tile_object.width, tile_object.height))
+            if tile_object.name == "tocha":
+                self.tocha_lista.add(Tocha(tile_object.x, tile_object.y))
+        for tocha in self.tocha_lista:
+            self.luz_lista.add(Luz(tocha.rect.x - 110, tocha.rect.y - 100))
+        # for heart in self.heart_list:
+        #     self.luz_lista.add(HighLight(heart.rect.x - 20, heart.rect.y - 30))
+
+        # As imagens são carregadas normalmente, não diretamente do arquivo tmx
+        self.image = pygame.image.load('maps/level1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+        self.level1_limite = 12800
+        # Cada imagem é carregada separadamente e recebe um rect para formar uma camada e para fazer o efeito parallax
+        self.image2 = pygame.image.load('maps/level1-2.png').convert_alpha()
+        self.rect2 = self.image2.get_rect()
+        self.rect2.x = -2000
+        self.rect2.y = 0
+
+        self.image3 = pygame.image.load('maps/level1-3.png').convert_alpha()
+        self.rect3 = self.image3.get_rect()
+        self.rect3.x = -2000
+        self.rect3.y = 0
+
+        self.image4 = pygame.image.load('maps/level1-4.png').convert_alpha()
+        self.rect4 = self.image4.get_rect()
+        self.rect4.x = -2000
+        self.rect4.y = 0
+
 
 # Create platforms for the level
 class Level01(Level):
     """ Definition for level 1. """
-
     def __init__(self, player):
         """ Create level 1. """
-
         # Call the parent constructor
         Level.__init__(self, player)
-        self.level_limit = -8000
-
-        # Array with width, height, x, and y of platform
-        level = [
-                [ 120, 1360,  215,   0],
-                [3200,   60,    0, 705],
-                [ 512,  130,  512, 577],
-                [ 260,   60, 1150, 449],
-                [ 257,   60, 1792, 513],
-                [ 257,   60, 2305, 513],
-                [ 120, 1360, 2600,   0]
-                # [ 120, 1360,12100,   0],
-                ]
-
-        spikes = [
-                 [360, 64, 1995, 700]
-                 ]
-
-        # Go through the array above and add platforms
-        # for platform in level:
-        #     block = Platform(platform[0], platform[1])
-        #     block.rect.x = platform[2]
-        #     block.rect.y = platform[3]
-        #     block.player = self.player
-        #     self.platform_list.add(block)
-        #
-        # for spike in spikes:
-        #     block2 = Spike(spike[0], spike[1])
-        #     block2.rect.x = spike[2]
-        #     block2.rect.y = spike[3]
-        #     self.spike_list.add(block2)
-
-        # Enemies in the level
-        # self.enemy_list.add(Escaravelho(800, 535, 600, 1000))
-        # self.enemy_list.add(Escaravelho(1300, 405, 1130, 1400))
-        # self.enemy_list.add(Aranha(1300, 0, 0, 405))
-        # self.enemy_list.add(Aranha(1600, 0, 0, 405))
-
-        self.heart_list.add(Heart(1900, 630))
-
-        self.poder_lista.add(Poder(1800, 630))
-
-        self.enemy_list.add(Esqueleto(2000, 630, 0, 0))
+        self.level_limit = -12800 + SCREEN_WIDTH
+        self.carregar_tmx(1)
 
 
 # Create platforms for the level
 class Level02(Level):
     """ Definition for level 2. """
-
     def __init__(self, player):
-        """ Create level 1. """
-
+        """ Create level 2. """
         # Call the parent constructor
         Level.__init__(self, player)
-
-        self.level_limit = -200
-
-        # Array with type of platform, and x, y location of the platform.
-        level = [
-                [120, 800,-200,   0],
-                [100,  10, 450, 600],
-                [ 10, 100, 540, 500],
-                [100,  10, 540, 500],
-                [ 10, 100, 630, 410],
-                [100,  10, 630, 410],
-                [ 10, 100, 720, 320],
-                [100,  10, 720, 320],
-                [ 10, 100, 810, 230],
-                [100,  10, 810, 230],
-                [ 10, 100, 900, 140],
-                [100,  10, 900, 140],
-                [ 10, 100, 990,  50],
-                [100,  10, 990,  50],
-                [ 10, 300,1080,-240]
-                ]
-
-        # Go through the array above and add platforms
-        # for platform in level:
-        #     block = Platform(platform[0], platform[1])
-        #     block.rect.x = platform[2]
-        #     block.rect.y = platform[3]
-        #     block.player = self.player
-        #     self.platform_list.add(block)
-
-        self.enemy_list.add(Escaravelho(400, 550, 200, 450))
+        self.level_limit = -11000
+        # self.carregar_tmx(2)
 
 
 # Initialize joystick
@@ -1646,8 +1647,9 @@ def main():
     active_sprite_list = pygame.sprite.Group()
 
     player.level = current_level
-    player.rect.x = 200
-    player.rect.y = 600
+
+    player.rect.x = player.pos_ini_x
+    player.rect.y = player.pos_ini_y
 
     active_sprite_list.add(player)
 
@@ -1783,7 +1785,7 @@ def main():
         current_level.update()
 
         # If the player gets near the right side, shift the world left (-x)
-        if player.rect.right >= 906:
+        if player.rect.right >= 906 and current_level.world_shift > current_level.level_limit:
             diff = player.rect.right - 906
             player.rect.right = 906
             current_level.shift_world(-diff)
@@ -1795,13 +1797,13 @@ def main():
             current_level.shift_world(diff)
 
         # If the player gets to the end of the level, go to the next level
-        current_position = player.rect.x + current_level.world_shift
-        if current_position < current_level.level_limit:
-            player.rect.x = 120
-            if current_level_no < len(level_list) - 1:
-                current_level_no += 1
-                current_level = level_list[current_level_no]
-                player.level = current_level
+        # current_position = player.rect.x + current_level.world_shift
+        # if current_position < current_level.level_limit:
+        #     player.rect.x = 120
+        #     if current_level_no < len(level_list) - 1:
+        #         current_level_no += 1
+        #         current_level = level_list[current_level_no]
+        #         player.level = current_level
 
         # Draw the sprites
         current_level.draw(screen)

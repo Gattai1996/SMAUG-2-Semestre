@@ -14,10 +14,13 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="true">
-        <entry file="file://D:/Arquivos/Compressão de dados/Compressão de espaços.py">
+        <entry file="file://$PROJECT_DIR$/beta_1.3.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="16" lean-forward="true" selection-start-line="16" selection-end-line="16" />
+            <state relative-caret-position="299">
+              <caret line="1416" column="39" lean-forward="true" selection-start-line="1416" selection-start-column="39" selection-end-line="1416" selection-end-column="39" />
+              <folding>
+                <element signature="e#0#13#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -51,15 +54,15 @@
         <option value="$PROJECT_DIR$/level.py" />
         <option value="$PROJECT_DIR$/beta_1.1.py" />
         <option value="$PROJECT_DIR$/beta_1.2.py" />
-        <option value="$PROJECT_DIR$/beta_1.3.py" />
         <option value="D:/Arquivos/Compressão de dados de repetição.py" />
         <option value="D:/Arquivos/Algoritmo de compressão de espaços brancos.py" />
         <option value="D:/Arquivos/Compressão de dados/Algoritmo de compressão de espaços brancos.py" />
         <option value="D:/Arquivos/Compressão de dados/Compressão de espaços.py" />
+        <option value="$PROJECT_DIR$/beta_1.3.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="673" />
     <option name="width" value="694" />
     <option name="height" value="735" />
@@ -96,7 +99,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.Algoritmo de compressão de espaços brancos (1)">
+  <component name="RunManager" selected="Python.beta_1.3">
     <configuration name="Algoritmo de compressão de espaços brancos (1)" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="SMAUG" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -204,10 +207,10 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.beta_1.3" />
         <item itemvalue="Python.Algoritmo de compressão de espaços brancos (1)" />
         <item itemvalue="Python.Compressão de espaços" />
         <item itemvalue="Python.Algoritmo de compressão de espaços brancos" />
-        <item itemvalue="Python.beta_1.3" />
         <item itemvalue="Python.beta_1.2" />
       </list>
     </recent_temporary>
@@ -226,7 +229,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="673" y="0" width="694" height="735" extended-state="0" />
+    <frame x="-8" y="-8" width="1376" height="744" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49717513" weight="0.24813154" />
@@ -234,7 +237,7 @@
       <window_info id="Favorites" order="2" side_tool="true" weight="0.32884902" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3289689" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.21594684" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.21440262" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39934534" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -297,88 +300,63 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>837</line>
+          <line>871</line>
           <option name="timeStamp" value="63" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1313</line>
+          <line>1348</line>
           <option name="timeStamp" value="64" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>935</line>
+          <line>969</line>
           <option name="timeStamp" value="69" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>769</line>
+          <line>803</line>
           <option name="timeStamp" value="78" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>740</line>
+          <line>774</line>
           <option name="timeStamp" value="79" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>758</line>
+          <line>792</line>
           <option name="timeStamp" value="80" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1049</line>
-          <option name="timeStamp" value="81" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1051</line>
-          <option name="timeStamp" value="82" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1050</line>
-          <option name="timeStamp" value="83" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1052</line>
-          <option name="timeStamp" value="84" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>936</line>
+          <line>970</line>
           <option name="timeStamp" value="85" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1018</line>
-          <option name="timeStamp" value="86" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1019</line>
-          <option name="timeStamp" value="87" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>849</line>
+          <line>883</line>
           <option name="timeStamp" value="93" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>850</line>
+          <line>884</line>
           <option name="timeStamp" value="94" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1105</line>
+          <line>1139</line>
           <option name="timeStamp" value="95" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/beta_1.3.py</url>
-          <line>1006</line>
-          <option name="timeStamp" value="96" />
+          <line>1372</line>
+          <option name="timeStamp" value="97" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/beta_1.3.py</url>
+          <line>1038</line>
+          <option name="timeStamp" value="98" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -487,16 +465,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/beta_1.3.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="291">
-          <caret line="1482" column="36" selection-start-line="1482" selection-start-column="36" selection-end-line="1482" selection-end-column="36" />
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://D:/Arquivos/Compressão de dados/Compressão de dados de repetição.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -514,10 +482,14 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://D:/Arquivos/Compressão de dados/Compressão de espaços.py">
+    <entry file="file://D:/Arquivos/Compressão de dados/Compressão de espaços.py" />
+    <entry file="file://$PROJECT_DIR$/beta_1.3.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" lean-forward="true" selection-start-line="16" selection-end-line="16" />
+        <state relative-caret-position="299">
+          <caret line="1416" column="39" lean-forward="true" selection-start-line="1416" selection-start-column="39" selection-end-line="1416" selection-end-column="39" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
