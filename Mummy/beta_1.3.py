@@ -83,6 +83,7 @@ class Player(pygame.sprite.Sprite):
         self.idle_right = []
         self.dashing_right = []
         self.dashing_left = []
+        self.tocando_porta = []
         self.load_img()
         self.image = self.idle_right[0]
         # Set a referance to the image rect.
@@ -106,6 +107,8 @@ class Player(pygame.sprite.Sprite):
         self.dash = False
         self.dash_limit = False
         self.level = None
+        self.porta = False
+        self.apertando_cima = False
         self.life = 200
         self.poder = 10
         self.item = 'faca'
@@ -327,6 +330,10 @@ class Player(pygame.sprite.Sprite):
         self.spike_hit_list = pygame.sprite.spritecollide(self, self.level.spike_list, False)
         self.hitbox_enemy = pygame.sprite.spritecollide(self, self.level.hitbox_attack_inimigo, False,
                                                         pygame.sprite.collide_circle)
+        self.tocando_porta = pygame.sprite.spritecollide(self, self.level.porta_lista, False)
+
+        for porta in self.tocando_porta:
+            self.porta = True
 
         if not self.melee_delay:
             self.level.melee_hitbox_list.empty()
@@ -544,6 +551,11 @@ class Player(pygame.sprite.Sprite):
     def stop(self):
         """ Called when the user lets off the keyboard. """
         self.change_x = 0
+
+    def cima(self):
+        """ Called when the user lets off the keyboard. """
+        self.apertando_cima = True
+        pygame.time.set_timer(pygame.USEREVENT - 2, 100)
 
 
 class Heart(pygame.sprite.Sprite):
@@ -1133,6 +1145,17 @@ class TiledMap:
         return temp_surface
 
 
+class Porta(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface((w, h))
+        self.rect = self.image.get_rect()
+        self.image.fill(RED)
+        self.rect.x = x
+        self.rect.y = y
+
+
 class Level(pygame.sprite.Sprite):
     """ This is a generic super-class used to define a level.
         Create a child class for each level with level-specific
@@ -1154,6 +1177,7 @@ class Level(pygame.sprite.Sprite):
         self.tocha_lista = pygame.sprite.Group()
         self.luz_lista = pygame.sprite.Group()
         self.poder_lista = pygame.sprite.Group()
+        self.porta_lista = pygame.sprite.Group()
 
         self.enemy_hit_platform = []
         self.hits_enemy = []
@@ -1184,6 +1208,7 @@ class Level(pygame.sprite.Sprite):
         self.tocha_lista.update()
         self.luz_lista.update()
         self.poder_lista.update()
+        self.porta_lista.update()
 
         for faca in self.faca_lista:
             if faca.rect.x > SCREEN_WIDTH or faca.rect.x < -20:
@@ -1321,10 +1346,12 @@ class Level(pygame.sprite.Sprite):
         #     # pygame.draw.rect(screen, RED, hitbox.rect)
         # for hitbox2 in self.hitbox_attack_inimigo:
         #     pygame.draw.circle(screen, RED, hitbox2.rect.center, hitbox2.radius)
-        # for bullet in self.bullet_list:
-        #     pygame.draw.circle(screen, RED, bullet.rect.center, bullet.radius)
+        # for faca in self.faca_lista:
+        #     pygame.draw.circle(screen, RED, faca.rect.center, faca.radius)
         # for enemy in self.enemy_list:
         #     pygame.draw.circle(screen, RED, enemy.rect.center, enemy.radius)
+        # for porta in self.porta_lista:
+        #     pygame.draw.rect(screen, RED, porta.rect.center)
         # pygame.draw.circle(screen, RED, (self.player_pos_x, self.player_pos_y), 25)
 
         self.tocha_lista.draw(screen)
@@ -1332,6 +1359,7 @@ class Level(pygame.sprite.Sprite):
 
         self.heart_list.draw(screen)
         self.poder_lista.draw(screen)
+        self.porta_lista.draw(screen)
 
     def shift_world(self, shift_x):
         """ When the user moves left/right and we need to scroll
@@ -1369,6 +1397,8 @@ class Level(pygame.sprite.Sprite):
             luz.rect.x += shift_x
         for poder in self.poder_lista:
             poder.rect.x += shift_x
+        for porta in self.porta_lista:
+            porta.rect.x += shift_x
 
     def carregar_tmx(self, num_level):
         # Carrega o arquivo tmx do Tiledmap Editor
@@ -1394,6 +1424,9 @@ class Level(pygame.sprite.Sprite):
                                           tile_object.width, tile_object.height))
             if tile_object.name == 'poder':
                 self.poder_lista.add(Poder(tile_object.x, tile_object.y,
+                                           tile_object.width, tile_object.height))
+            if tile_object.name == 'porta':
+                self.porta_lista.add(Porta(tile_object.x, tile_object.y,
                                            tile_object.width, tile_object.height))
             if tile_object.name == "espinhos":
                 self.spike_list.add(Espinhos(tile_object.x, tile_object.y,
@@ -1459,7 +1492,7 @@ class Level02(Level):
         # Call the parent constructor
         Level.__init__(self, player)
         self.level_limit = -11000
-        # self.carregar_tmx(2)
+        self.carregar_tmx(1)
 
 
 # Initialize joystick
@@ -1743,6 +1776,8 @@ def main():
             if event.type == pygame.USEREVENT-1:
                 for enemy in current_level.enemy_list:
                     enemy.delay_attack = False
+            if event.type == pygame.USEREVENT-2:
+                player.apertando_cima = False
 
         # Joystick analog:
         joystick_count = pygame.joystick.get_count()
@@ -1777,6 +1812,8 @@ def main():
                 if hat == (-1, 0):
                     player.go_left()
                     player.facing = 'left'
+                if hat == (0, 1):
+                    player.cima()
 
         # Update the player.
         active_sprite_list.update()
@@ -1804,6 +1841,12 @@ def main():
         #         current_level_no += 1
         #         current_level = level_list[current_level_no]
         #         player.level = current_level
+
+        if player.apertando_cima and player.porta:
+            if current_level_no < len(level_list) - 1:
+                current_level_no += 1
+                current_level = level_list[current_level_no]
+                player.level = current_level
 
         # Draw the sprites
         current_level.draw(screen)
