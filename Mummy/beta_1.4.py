@@ -3,28 +3,21 @@ import pytmx
 from os import path
 from random import *
 
-
-# Colors
 BLACK  = (  0,   0,   0)
 WHITE  = (255, 255, 255)
 GREEN  = (  0, 255,   0)
 RED    = (255,   0,   0)
 BLUE   = (  0,   0, 255)
 YELLOW = (255, 255,   0)
-# Screen dimensions
+GRAY   = (125, 125, 125)
 SCREEN_WIDTH = 1360
 SCREEN_HEIGHT = 768
-# Set the height and width of the screen
 size = [SCREEN_WIDTH, SCREEN_HEIGHT]
 screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
-
-# Used to manage how fast the screen updates
 clock = pygame.time.Clock()
-# pygame.font.match_font() search a font based in input received, typed correctly or not
 font_name = pygame.font.match_font('princeofpersia')
 
 
-# Function used to manage texts
 def print_in_screen(surf, text, tamanho, x, y):
     font = pygame.font.Font(font_name, tamanho)
     text_surface = font.render(text, True, WHITE)
@@ -41,8 +34,8 @@ def draw_life_bar(surf, x, y, width, height, color, life):
     fill = (life / width) * bar_length
     outline_rect = pygame.Rect(x, y, bar_length, bar_height)
     fill_rect = pygame.Rect(x, y, fill, bar_height)
+    pygame.draw.rect(surf, GRAY, outline_rect)
     pygame.draw.rect(surf, color, fill_rect)
-    pygame.draw.rect(surf, BLACK, outline_rect, 2)
 
 
 def draw_HUD_bar(surf, x, y):
@@ -53,15 +46,7 @@ def draw_HUD_bar(surf, x, y):
 
 
 class Player(pygame.sprite.Sprite):
-    """
-    This class represents the bar at the bottom that the player controls.
-    """
-
-    # -- Methods
     def __init__(self):
-        """ Constructor function """
-
-        # Call the parent's constructor
         pygame.sprite.Sprite.__init__(self)
         # Listas de imagens
         self.enemy_hit_list = []
@@ -86,12 +71,10 @@ class Player(pygame.sprite.Sprite):
         self.tocando_porta = []
         self.load_img()
         self.image = self.idle_right[0]
-        # Set a referance to the image rect.
         self.rect = self.image.get_rect()
         self.pos_ini_x = 0
         self.pos_ini_y = 0
         self.radius = 25
-        # Set speed vector of player
         self.change_x = 0
         self.change_y = 0
         self.change_x2 = 0
@@ -109,6 +92,9 @@ class Player(pygame.sprite.Sprite):
         self.level = None
         self.porta = False
         self.apertando_cima = False
+        self.apertando_baixo = False
+        self.wall_jump_direita = False
+        self.wall_jump_esquerda = False
         self.life = 200
         self.poder = 10
         self.item = 'faca'
@@ -121,7 +107,6 @@ class Player(pygame.sprite.Sprite):
         self.pos_init_dash = 0
         self.dash_right = 0
         self.dash_left = 0
-        # Sons
         self.spike = pygame.mixer.Sound('sfx/spike_hit.wav')
         self.heart = pygame.mixer.Sound('sfx/heart.wav')
         self.faca_1 = pygame.mixer.Sound('sfx/faca_1.wav')
@@ -288,7 +273,6 @@ class Player(pygame.sprite.Sprite):
             self.stop()
         self.change_x2 = self.change_x2 * 0.95
         self.change_y2 = self.change_y2 * 0.95
-        # used to hitbox position update in level class
         self.dash_change_x = self.dash_change_x * 0.95
         self.level.dash_changes_x = self.dash_change_x
         self.level.changes_x = self.change_x
@@ -297,7 +281,6 @@ class Player(pygame.sprite.Sprite):
         self.level.player_pos_y = self.rect.centery
         self.rect.x += self.dash_change_x
 
-        """ Move the player. """
         if self.change_y != 0:
             self.jumping = True
             self.walking = False
@@ -313,15 +296,12 @@ class Player(pygame.sprite.Sprite):
             self.dash_limit = False
 
         self.animate()
-        # Gravity
-        self.calc_grav()
 
-        # Move left/right
+        self.calc_grav()
 
         self.rect.x += self.change_x2
         self.rect.x += self.change_x
 
-        # See if we hit anything
         self.platform_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
         self.enemy_hit_list = pygame.sprite.spritecollide(self, self.level.enemy_list, False,
                                                           pygame.sprite.collide_circle)
@@ -343,6 +323,7 @@ class Player(pygame.sprite.Sprite):
             self.life += 100
             if self.life > 200:
                 self.life = 200
+
         for poder in self.poder_hit_list:
             self.heart.play()
             self.poder += 3
@@ -364,91 +345,110 @@ class Player(pygame.sprite.Sprite):
                 self.stop()
                 self.dano()
                 self.delay_dano()
-            #
-            # if not self.dano_delay:
-            #     self.life -= 40
-            #
-            # if self.change_x == 0:
-            #     if self.rect.x < enemy.rect.x:
-            #         # self.rect.right = block1.rect.left - 1
-            #         if not self.dano_delay:
-            #             self.dano()
-            #             self.delay_dano()
-            #     else:
-            #         # self.rect.left = block1.rect.right + 1
-            #         if not self.dano_delay:
-            #             self.dano()
-            #             self.delay_dano()
-            # if self.change_x > 0:
-            #     # self.rect.right = block1.rect.left
-            #     if not self.dano_delay:
-            #         self.dano()
-            #         self.delay_dano()
-            # if self.change_x < 0:
-            #     # self.rect.left = block1.rect.right
-            #     if not self.dano_delay:
-            #         self.dano()
-            #         self.delay_dano()
+                self.life -= 40
 
-        for platform in self.platform_hit_list:
-            # If we are moving right,
-            # set our right side to the left side of the item we hit
+            if not self.dano_delay:
+                self.life -= 40
+
+            if self.change_x == 0:
+                if self.rect.x < enemy.rect.x:
+                    # self.rect.right = block1.rect.left - 1
+                    if not self.dano_delay:
+                        self.dano()
+                        self.delay_dano()
+                else:
+                    # self.rect.left = block1.rect.right + 1
+                    if not self.dano_delay:
+                        self.dano()
+                        self.delay_dano()
             if self.change_x > 0:
-                self.rect.right = platform.rect.left
-            elif self.change_x < 0:
-                # Otherwise if we are moving left, do the opposite.
-                self.rect.left = platform.rect.right
+                # self.rect.right = block1.rect.left
+                if not self.dano_delay:
+                    self.dano()
+                    self.delay_dano()
+            if self.change_x < 0:
+                # self.rect.left = block1.rect.right
+                if not self.dano_delay:
+                    self.dano()
+                    self.delay_dano()
+        # Wall jump
+        for platform in self.platform_hit_list:
+            if platform.type == 1:
+                if self.change_x > 0:
+                    self.rect.right = platform.rect.left
 
-            if self.dash_change_x > 0:
-                self.rect.right = platform.rect.left
-            elif self.dash_change_x < 0:
-                self.rect.left = platform.rect.right
+                    if self.change_y < 0:
+                        if self.facing == 'right' and not self.wall_jump_direita:
+                            self.facing = 'left'
+                            self.change_y = -20
+                            self.wall_jump_direita = True
+                            self.wall_jump_esquerda = False
 
-            if self.change_x2 > 0:
-                self.rect.right = platform.rect.left
-            elif self.change_x2 < 0:
-                self.rect.left = platform.rect.right
+                elif self.change_x < 0:
+                    self.rect.left = platform.rect.right
 
-        # Move up/down
+                    if self.change_y < 0:
+                        if self.facing == 'left' and not self.wall_jump_esquerda:
+                            self.facing = 'right'
+                            self.change_y = -20
+                            self.wall_jump_esquerda = True
+                            self.wall_jump_direita = False
+
+                if self.dash_change_x > 0:
+                    self.rect.right = platform.rect.left
+                elif self.dash_change_x < 0:
+                    self.rect.left = platform.rect.right
+
+                if self.change_x2 > 0:
+                    self.rect.right = platform.rect.left
+                elif self.change_x2 < 0:
+                    self.rect.left = platform.rect.right
+
+        if self.change_y >= 0 and not self.jumping:
+            self.wall_jump_direita = False
+            self.wall_jump_esquerda = False
+
         if not self.dash:
             self.rect.y += self.change_y
             self.rect.y += self.change_y2
         self.platform_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
         # block_hit_list_enemy = pygame.sprite.spritecollide(self, self.level.enemy_list, False)
 
-        # Check and see if we hit anything
         for platform in self.platform_hit_list:
+            if platform.type == 1:
+                if self.change_y > 0:
+                    self.rect.bottom = platform.rect.top
+                    self.jumping = False
+                elif self.change_y < 0:
+                    self.rect.top = platform.rect.bottom
 
-            # Reset our position based on the top/bottom of the object.
-            if self.change_y > 0:
-                self.rect.bottom = platform.rect.top
-            elif self.change_y < 0:
-                self.rect.top = platform.rect.bottom
+                if self.change_y2 > 0:
+                    self.rect.bottom = platform.rect.top
+                    self.jumping = False
 
-            if self.change_y2 > 0:
-                self.rect.bottom = platform.rect.top
-            # elif self.change_y2 < 0:
-            #     self.rect.top = platform.rect.bottom
+                self.change_y = 0
+                self.jumping = False
 
-            # Stop our vertical movement
-            self.change_y = 0
+            elif platform.type == 2 and not self.apertando_baixo:
+                if self.rect.y + 126 < platform.rect.y + 50 and self.change_y > 0:
+                    if self.change_y > 0:
+                        self.rect.bottom = platform.rect.top
+                        self.jumping = False
+                    # elif self.change_y < 0:
+                    #     self.rect.top = platform.rect.bottom
+                    if self.change_y2 > 0:
+                        self.rect.bottom = platform.rect.top
+                        self.jumping = False
 
-        # for block1 in block_hit_list_enemy:
-        #     if block1.type == 2:
-                # Reset our position based on the top/bottom of the object.
-                # if self.change_y > 0:
-                #     self.rect.bottom = block.rect.top
-                # if self.change_y < 0:
-                #     self.rect.top = block1.rect.bottom
-
-            # Stop our vertical movement
-            # self.change_y = 0
+                    self.change_y = 0
+                    self.jumping = False
 
         for spike in self.spike_hit_list:
             if not self.dano_delay:
                 # self.life -= 60
                 self.delay_dano()
                 self.spike.play()
+                self.life -= 40
 
         for hitbox in self.hitbox_enemy:
             if not self.dano_delay:
@@ -461,41 +461,34 @@ class Player(pygame.sprite.Sprite):
         self.change_y = 0
         self.change_x = 0
         if self.facing == 'right':
-            self.change_x2 += -5
-            self.change_y2 += -3
+            self.change_x2 += -8
+            self.change_y2 += -6
         else:
-            self.change_x2 += 5
-            self.change_y2 += -3
+            self.change_x2 += 8
+            self.change_y2 += -6
 
     def calc_grav(self):
-        """ Calculate effect of gravity. """
         if self.change_y == 0:
-            self.change_y = 1
+            self.change_y = 4
         else:
-            self.change_y += 0.35
+            self.change_y += 1.3
 
-        # See if we are on the ground.
         if self.rect.y >= SCREEN_HEIGHT - self.rect.height and self.change_y >= 0:
             self.change_y = 0
             self.rect.y = SCREEN_HEIGHT - self.rect.height
 
     def jump(self):
-        """ Called when user hits 'jump' button. """
-
-        # move down a bit and see if there is a platform below us.
-        # Move down 2 pixels because it doesn't work well if we only move down 1
-        # when working with a platform moving down.
-        self.rect.y += 2
+        self.rect.y += 4
         platform_hit_list = pygame.sprite.spritecollide(self, self.level.platform_list, False)
         enemy_hit_list = pygame.sprite.spritecollide(self, self.level.enemy_list, False)
-        self.rect.y -= 2
+        self.rect.y -= 4
         self.jumping = True
 
-        # If it is ok to jump, set our speed upwards
         if len(platform_hit_list) > 0 or self.rect.bottom >= SCREEN_HEIGHT:
-            self.change_y = -12
+            self.change_y = -24
+
         if len(enemy_hit_list) > 0 or self.rect.bottom >= SCREEN_HEIGHT:
-            self.change_y = -12
+            self.change_y = -24
 
     def shoot(self):
         if not self.attack_delay:
@@ -507,13 +500,13 @@ class Player(pygame.sprite.Sprite):
                         faca = Faca(self.rect.centerx, self.rect.top)
                         self.level.faca_lista.add(faca)
                         self.delay_attack()
-                        faca.speed = 15
+                        faca.speed = 20
                         faca.facing = 'right'
                     else:
                         faca = Faca(self.rect.left, self.rect.top)
                         self.level.faca_lista.add(faca)
                         self.delay_attack()
-                        faca.speed = -15
+                        faca.speed = -20
                         faca.facing = 'left'
 
     def melee(self):
@@ -535,27 +528,30 @@ class Player(pygame.sprite.Sprite):
         if self.dash:
             self.change_x = 0
             if self.facing == 'right':
-                self.dash_change_x += 20
+                self.dash_change_x += 40
             else:
-                self.dash_change_x += -20
+                self.dash_change_x += -40
 
-    # Player-controlled movement:
     def go_left(self):
-        """ Called when the user hits the left arrow. """
-        self.change_x = -6
+        if not self.wall_jump_esquerda:
+            self.facing = 'left'
+            self.change_x = -12
 
     def go_right(self):
-        """ Called when the user hits the right arrow. """
-        self.change_x = 6
+        if not self.wall_jump_direita:
+            self.facing = 'right'
+            self.change_x = 12
 
     def stop(self):
-        """ Called when the user lets off the keyboard. """
         self.change_x = 0
 
     def cima(self):
-        """ Called when the user lets off the keyboard. """
         self.apertando_cima = True
         pygame.time.set_timer(pygame.USEREVENT - 2, 100)
+
+    def baixo(self):
+        self.apertando_baixo = True
+        pygame.time.set_timer(pygame.USEREVENT - 3, 500)
 
 
 class Heart(pygame.sprite.Sprite):
@@ -636,7 +632,7 @@ class Faca(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
         self.speed = 0
-        self.grav = -2
+        self.grav = -6
         self.last_update = 0
         self.current_frame = 0
         self.right = []
@@ -671,48 +667,34 @@ class Faca(pygame.sprite.Sprite):
         self.animate()
         self.speed = self.speed * 0.99
         self.rect.x += self.speed
-        self.grav += 0.20
+        self.grav += 0.8
         self.rect.y += self.grav
 
 
 class Platform(pygame.sprite.Sprite):
-    """ Platform the user can jump on """
-
     def __init__(self, width, height):
-        """ Platform constructor. Assumes constructed with user passing in
-            an array of 5 numbers like what's defined at the top of this code.
-            """
         super().__init__()
-
+        self.type = 0
         self.image = pygame.Surface([width, height])
         # self.image.fill(GREEN)
-
         self.rect = self.image.get_rect()
 
 
 class Obstacle(pygame.sprite.Sprite):
-    """ Platform the user can jump on """
-
-    def __init__(self, x, y, w, h):
-        """ Platform constructor. Assumes constructed with user passing in
-            an array of 5 numbers like what's defined at the top of this code.
-            """
+    def __init__(self, type, x, y, w, h):
         pygame.sprite.Sprite.__init__(self)
-
+        self.type = type
         self.image = pygame.Surface([w, h])
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
-        # self.rect = pygame.Rect(x, y, w, h)
-        # self.rect.x = x
-        # self.rect.y = y
+        self.width = w
+        self.height = h
 
 
 class Limitador(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height):
         pygame.sprite.Sprite.__init__(self)
-
         self.image = pygame.Surface([width, height])
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -722,7 +704,6 @@ class Limitador(pygame.sprite.Sprite):
 class Espinhos(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height):
         pygame.sprite.Sprite.__init__(self)
-
         self.image = pygame.Surface([width, height])
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -732,10 +713,8 @@ class Espinhos(pygame.sprite.Sprite):
 class Spike(pygame.sprite.Sprite):
     def __init__(self, width, height):
         pygame.sprite.Sprite.__init__(self)
-
         self.image = pygame.Surface([width, height])
         # self.image.fill(RED)
-
         self.rect = self.image.get_rect()
 
 
@@ -762,6 +741,7 @@ class Aranha(pygame.sprite.Sprite):
         self.max_x = 0
         self.action = False
         self.player_y = 0
+        self.player_x = 0
         # self.current_frame = 0
         # self.last_update = 0
 
@@ -789,20 +769,20 @@ class Aranha(pygame.sprite.Sprite):
     #             self.image = self.walking_right[self.current_frame]
 
     def update(self):
-        # self.animate()
-
-        self.rect.y += self.change_y
-        if self.action:
-
-            # if self.rect.top < self.min_y:
-            self.change_y += 0.5
-            if self.rect.bottom > self.player_y + 50:
-                self.change_y = -5
-        else:
-            if self.rect.top > 0:
-                self.change_y -= 0.2
+        if self.player_x - self.rect.x < SCREEN_WIDTH:
+            # self.animate()
+            self.rect.y += self.change_y
+            if self.action:
+                self.change_y += 2
+                if self.rect.bottom > self.player_y + 100:
+                    self.change_y = -10
             else:
-                self.change_y = 0
+                if self.rect.top > 0:
+                    self.change_y -= 0.8
+                else:
+                    self.change_y = 0
+            if self.rect.y > SCREEN_HEIGHT:
+                self.rect.y = SCREEN_HEIGHT
 
     def dano_delay(self):
         pass
@@ -825,7 +805,7 @@ class Escaravelho(pygame.sprite.Sprite):
         self.rect.y = y
         self.facing = 'right'
         self.pos_x = self.rect.x
-        self.change_x = 1
+        self.change_x = 2
         self.min_x = x - 180
         self.max_x = x + 180
         self.current_frame = 0
@@ -857,14 +837,15 @@ class Escaravelho(pygame.sprite.Sprite):
                 self.image = self.walking_right[self.current_frame]
 
     def update(self):
-        self.action = None
-        self.animate()
-        self.rect.x += self.change_x
-        self.rect.y += self.change_y
-        if self.change_x == 1:
-            self.facing = 'right'
-        else:
-            self.facing = 'left'
+        if self.player_x - self.rect.x < SCREEN_WIDTH:
+            self.action = None
+            self.animate()
+            self.rect.x += self.change_x
+            self.rect.y += self.change_y
+            if self.change_x == 2:
+                self.facing = 'right'
+            else:
+                self.facing = 'left'
 
     def dano_delay(self):
         pass
@@ -1011,25 +992,26 @@ class Esqueleto(pygame.sprite.Sprite):
                     self.image = self.die_right[self.current_frame]
 
     def update(self):
-        self.animate()
-        self.rect.x += self.change_x
-        self.rect.y += self.change_y
+        if self.player_x - self.rect.x < SCREEN_WIDTH:
+            self.animate()
+            self.rect.x += self.change_x
+            self.rect.y += self.change_y
 
-        if not self.delay_attack and not self.delay_dano:
-            if self.action:
-                self.idle = False
-                self.walking = True
-                if self.facing == 'right':
-                    self.change_x = 1
+            if not self.delay_attack and not self.delay_dano:
+                if self.action:
+                    self.idle = False
+                    self.walking = True
+                    if self.facing == 'right':
+                        self.change_x = 2
+                    else:
+                        self.change_x = -2
                 else:
-                    self.change_x = -1
+                    self.walking = False
+                    self.idle = True
+                    self.change_x = 0
             else:
                 self.walking = False
-                self.idle = True
                 self.change_x = 0
-        else:
-            self.walking = False
-            self.change_x = 0
 
     def dano_delay(self):
         self.idle = False
@@ -1157,13 +1139,7 @@ class Porta(pygame.sprite.Sprite):
 
 
 class Level(pygame.sprite.Sprite):
-    """ This is a generic super-class used to define a level.
-        Create a child class for each level with level-specific
-        info. """
-
     def __init__(self, player):
-        """ Constructor. Pass in a handle to player. Needed for when moving
-            platforms collide with the player. """
         pygame.sprite.Sprite.__init__(self)
         # Adiciona os grupos de sprites em listas
         self.platform_list = pygame.sprite.Group()
@@ -1178,25 +1154,20 @@ class Level(pygame.sprite.Sprite):
         self.luz_lista = pygame.sprite.Group()
         self.poder_lista = pygame.sprite.Group()
         self.porta_lista = pygame.sprite.Group()
-
         self.enemy_hit_platform = []
         self.hits_enemy = []
         self.hits_platform = []
         self.hitbox_in_enemy = []
         self.enemy_hit_limitador = []
-
         self.player = player
         self.last_update = 0
         self.changes_x, self.changes_y = 0, 0
         self.player_pos_x, self.player_pos_y = 0, 0
-        # How far this world has been scrolled left/right
         self.world_shift = 0
-        # Sons
         self.faca_3 = pygame.mixer.Sound('sfx/faca_3.wav')
         self.faca_4 = pygame.mixer.Sound('sfx/faca_4.wav')
 
     def update(self):
-        # Atualiza tudo presente no level
         self.heart_list.update()
         self.platform_list.update()
         self.enemy_list.update()
@@ -1216,7 +1187,6 @@ class Level(pygame.sprite.Sprite):
             if faca.rect.y > SCREEN_HEIGHT + 50 or faca.rect.y < 0:
                 self.faca_lista.remove(faca)
 
-        # hitbox get the position of the player
         for hitbox in self.melee_hitbox_list:
             hitbox.rect.x += self.changes_x
             hitbox.rect.y += self.changes_y
@@ -1228,7 +1198,6 @@ class Level(pygame.sprite.Sprite):
         self.enemy_hit_platform = pygame.sprite.groupcollide(self.enemy_list, self.platform_list, False, False)
         self.enemy_hit_limitador = pygame.sprite.groupcollide(self.enemy_list, self.limitador1_lista, False, False)
 
-        # Se alguma faca bater em algo, toca o som
         for hit in self.hits_enemy:
             self.faca_3.play()
 
@@ -1256,6 +1225,10 @@ class Level(pygame.sprite.Sprite):
             if enemy.type == 1 or 3:
                 enemy.rect.y -= 1
 
+        for escaravelho in self.enemy_list:
+            if escaravelho.type == 1:
+                escaravelho.player_x = self.player_pos_x
+                escaravelho.player_y = self.player_pos_y
         # Se a aranha bate em uma plataforma, para seu movimento
         for aranha in self.enemy_hit_platform:
             if aranha.type == 2:
@@ -1264,6 +1237,7 @@ class Level(pygame.sprite.Sprite):
         for aranha in self.enemy_list:
             if aranha.type == 2:
                 aranha.player_y = self.player_pos_y
+                aranha.player_x = self.player_pos_x
                 if aranha.rect.x - self.player_pos_x < 200 and self.player_pos_x < aranha.rect.x + 200:
                     aranha.action = True
                 else:
@@ -1271,6 +1245,8 @@ class Level(pygame.sprite.Sprite):
 
         for esqueleto in self.enemy_list:
             if esqueleto.type == 3:
+                esqueleto.player_x = self.player_pos_x
+                esqueleto.player_y = self.player_pos_y
                 if esqueleto.rect.x < self.player_pos_x:
                     esqueleto.facing = 'right'
                 else:
@@ -1305,9 +1281,6 @@ class Level(pygame.sprite.Sprite):
                     esqueleto.action = False
 
     def draw(self, screen):
-        """ Draw everything on this level. """
-        # Draw the background
-        # Draw all the sprite lists that we have
         self.platform_list.draw(screen)
         self.melee_hitbox_list.draw(screen)
         self.hitbox_attack_inimigo.draw(screen)
@@ -1335,11 +1308,11 @@ class Level(pygame.sprite.Sprite):
             if enemy.type == 3 and enemy.mostrar_barra:
                 draw_life_bar(screen, enemy.rect.x, enemy.rect.y, 100, 10, RED, enemy.life)
 
-        # Draw text on the screen
         print_in_screen(screen, 'Level   1-1', 20, SCREEN_WIDTH / 2, 10)
         print_in_screen(screen, str(self.player.poder), 20, SCREEN_WIDTH - 50, 10)
-        print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 100)
+        print_in_screen(screen, str(self.player.dano_delay), 20, 1000, 100)
 
+        # print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 100)
         # Teste de hitbox com círculos
         # for hitbox in self.melee_hitbox_list:
         #     pygame.draw.circle(screen, RED, hitbox.rect.center, hitbox.radius)
@@ -1353,26 +1326,21 @@ class Level(pygame.sprite.Sprite):
         # for porta in self.porta_lista:
         #     pygame.draw.rect(screen, RED, porta.rect.center)
         # pygame.draw.circle(screen, RED, (self.player_pos_x, self.player_pos_y), 25)
+        # self.porta_lista.draw(screen)
 
         self.tocha_lista.draw(screen)
         self.luz_lista.draw(screen)
-
         self.heart_list.draw(screen)
         self.poder_lista.draw(screen)
-        self.porta_lista.draw(screen)
+
 
     def shift_world(self, shift_x):
-        """ When the user moves left/right and we need to scroll
-        everything: """
-
-        # Keep track of the shift amount
         self.world_shift += shift_x
         self.rect.x += shift_x
         self.rect2.x += shift_x * 0.8
         self.rect3.x += shift_x * 0.6
         self.rect4.x += shift_x * 0.4
 
-        # Go through all the sprite lists and shift
         for heart in self.heart_list:
             heart.rect.x += shift_x
         for platform in self.platform_list:
@@ -1417,7 +1385,10 @@ class Level(pygame.sprite.Sprite):
             #     self.porta_lista.add(Porta(tile_object.x, tile_object.y,
             #                                tile_object.width, tile_object.height))
             if tile_object.name == "plataforma":
-                self.platform_list.add(Obstacle(tile_object.x, tile_object.y,
+                self.platform_list.add(Obstacle(1, tile_object.x, tile_object.y,
+                                                tile_object.width, tile_object.height))
+            if tile_object.name == "plataforma2":
+                self.platform_list.add(Obstacle(2, tile_object.x, tile_object.y,
                                                 tile_object.width, tile_object.height))
             if tile_object.name == 'vida':
                 self.heart_list.add(Heart(tile_object.x, tile_object.y,
@@ -1456,6 +1427,7 @@ class Level(pygame.sprite.Sprite):
         self.rect.x = 0
         self.rect.y = 0
         self.level1_limite = 12800
+
         # Cada imagem é carregada separadamente e recebe um rect para formar uma camada e para fazer o efeito parallax
         self.image2 = pygame.image.load('maps/level1-2.png').convert_alpha()
         self.rect2 = self.image2.get_rect()
@@ -1473,45 +1445,41 @@ class Level(pygame.sprite.Sprite):
         self.rect4.y = 0
 
 
-# Create platforms for the level
 class Level01(Level):
-    """ Definition for level 1. """
     def __init__(self, player):
-        """ Create level 1. """
-        # Call the parent constructor
         Level.__init__(self, player)
         self.level_limit = -12800 + SCREEN_WIDTH
         self.carregar_tmx(1)
 
 
-# Create platforms for the level
 class Level02(Level):
-    """ Definition for level 2. """
     def __init__(self, player):
-        """ Create level 2. """
-        # Call the parent constructor
         Level.__init__(self, player)
         self.level_limit = -11000
         self.carregar_tmx(1)
 
 
-# Initialize joystick
+pygame.init()
+
+# Inicializa a função Joystick
 pygame.joystick.init()
+JOYSTICK = False
 joysticks = []
+
 for i in range(0, pygame.joystick.get_count()):
-    # create an Joystick object in our list
     joysticks.append(pygame.joystick.Joystick(i))
-    # initialize them all (-1 means loop forever)
-    joysticks[-1].init()
+    joysticks[-1].init() # -1 é um loop infinito, usado para inicializar todos os controles
+
+if len(joysticks) > 1:
+    JOYSTICK = True
 
 
 def marca():
     show_marca = True
-    pygame.init()
     pygame.mouse.set_visible(False)
     size = [SCREEN_WIDTH, SCREEN_HEIGHT]
     screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
-    marca1 = pygame.image.load('img/marca.png').convert_alpha()
+    marca1 = pygame.image.load('img/marca.png').convert()
     pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
 
     while show_marca:
@@ -1538,8 +1506,6 @@ marca()
 
 def menu():
     running_menu = True
-
-    pygame.init()
     pygame.mouse.set_visible(False)
     size = [SCREEN_WIDTH, SCREEN_HEIGHT]
     screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
@@ -1603,9 +1569,8 @@ def menu():
                         pygame.quit()
                         quit()
 
-        # Joystick analog:
         joystick_count = pygame.joystick.get_count()
-        # For each joystick:
+
         for i in range(joystick_count):
             joystick = pygame.joystick.Joystick(i)
             joystick.init()
@@ -1621,11 +1586,6 @@ def menu():
                         pos_light -= 1
                         select.play()
 
-            # Joystick arrows:
-            # Hat switch. All or nothing for direction, not like joysticks.
-            # Value comes back in an array.
-            # First one: 1 for right and -1 for left
-            # Second one: 1 for up and -1 for down
             hats = joystick.get_numhats()
 
             for i in range(hats):
@@ -1643,7 +1603,7 @@ def menu():
         screen.blit(play, pos_play)
         screen.blit(config, pos_config)
         screen.blit(turn_off, pos_off)
-
+        # print_in_screen(screen, str(len(joysticks)), 50, 100, 100)
         if pos_light == 1:
             screen.blit(light, pos_light1)
         elif pos_light == 2:
@@ -1659,42 +1619,37 @@ def menu():
 menu()
 
 
+def loading():
+    pygame.mouse.set_visible(False)
+    size = [SCREEN_WIDTH, SCREEN_HEIGHT]
+    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    carregando = pygame.image.load('img/Carregando.png').convert()
+    screen.blit(carregando, [0, 0])
+    pygame.display.flip()
+
+
+loading()
+
+
 def main():
-    """ Main Program """
-    pygame.init()
-
     # screen = pygame.display.set_mode(size)
-
     pygame.display.set_caption("Super Hero Mummy: Ramsés")
-
-    # Create the player
     player = Player()
-
-    # Create all the levels
     level_list = [Level01(player), Level02(player)]
-
-    # Set the current level
     current_level_no = 0
     current_level = level_list[current_level_no]
-
     active_sprite_list = pygame.sprite.Group()
-
     player.level = current_level
-
     player.rect.x = player.pos_ini_x
     player.rect.y = player.pos_ini_y
-
     active_sprite_list.add(player)
-
     pygame.mouse.set_visible(False)
-
-    # Loop until the user clicks the close button.
     done = False
-
     pygame.mixer.music.load('msc/stage.ogg')
     pygame.mixer.music.play(loops=-1)
 
-    # -------- Main Program Loop -----------
+    '''-------------------------------------------- Loop do jogo ---------------------------------------------------'''
+
     while not done:
         if player.life <= 0:
             done = True
@@ -1703,7 +1658,7 @@ def main():
             if event.type == pygame.QUIT:
                 done = True
 
-            if event.type == pygame.KEYDOWN:
+            if not JOYSTICK and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
@@ -1732,8 +1687,7 @@ def main():
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d and player.change_x > 0:
                     player.stop()
 
-            # Joystick buttons:
-            if event.type == pygame.JOYBUTTONDOWN:
+            if JOYSTICK and event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 0 and not player.dash_delay and not player.tomando_dano:
                     player.jump()
                 if event.button == 1 and not player.melee_atk and not player.dash_delay \
@@ -1748,6 +1702,9 @@ def main():
                     player.attacking = True
                     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
                     player.shoot()
+                if event.button == 7:
+                    pygame.quit()
+                    quit()
 
             if event.type == pygame.USEREVENT+1:
                 player.attacking = False
@@ -1778,17 +1735,18 @@ def main():
                     enemy.delay_attack = False
             if event.type == pygame.USEREVENT-2:
                 player.apertando_cima = False
+            if event.type == pygame.USEREVENT-3:
+                player.apertando_baixo = False
 
-        # Joystick analog:
         joystick_count = pygame.joystick.get_count()
-        # For each joystick:
+
         for i in range(joystick_count):
             joystick = pygame.joystick.Joystick(i)
             joystick.init()
 
             for i in range(2):
                 axis = joystick.get_axis(i)
-                if i == 0 and -0.4 < axis < 0.4:
+                if JOYSTICK and i == 0 and -0.4 < axis < 0.4:
                     player.stop()
                 if i == 0 and axis > 0.2:
                     player.go_right()
@@ -1797,50 +1755,33 @@ def main():
                     player.go_left()
                     player.facing = 'left'
 
-            # Joystick arrows:
-            # Hat switch. All or nothing for direction, not like joysticks.
-            # Value comes back in an array.
-            # First one: 1 for right and -1 for left
-            # Second one: 1 for up and -1 for down
             hats = joystick.get_numhats()
 
             for i in range(hats):
                 hat = joystick.get_hat(i)
                 if hat == (1, 0):
                     player.go_right()
-                    player.facing = 'right'
                 if hat == (-1, 0):
                     player.go_left()
-                    player.facing = 'left'
                 if hat == (0, 1):
                     player.cima()
+                if hat == (0, -1):
+                    player.baixo()
 
-        # Update the player.
         active_sprite_list.update()
-
-        # Update items in the level
         current_level.update()
 
-        # If the player gets near the right side, shift the world left (-x)
+        # Se o jogador está no canto direito da tela, ele para e o mundo se move no eixo x negativamente
         if player.rect.right >= 906 and current_level.world_shift > current_level.level_limit:
             diff = player.rect.right - 906
             player.rect.right = 906
             current_level.shift_world(-diff)
 
-        # If the player gets near the left side, shift the world right (+x)
+        # Se o jogador está no canto esquerdo da tela, ele para e o mundo se move no eixo x positivamente
         if player.rect.left <= 453 and current_level.world_shift < 0:
             diff = 453 - player.rect.left
             player.rect.left = 453
             current_level.shift_world(diff)
-
-        # If the player gets to the end of the level, go to the next level
-        # current_position = player.rect.x + current_level.world_shift
-        # if current_position < current_level.level_limit:
-        #     player.rect.x = 120
-        #     if current_level_no < len(level_list) - 1:
-        #         current_level_no += 1
-        #         current_level = level_list[current_level_no]
-        #         player.level = current_level
 
         if player.apertando_cima and player.porta:
             if current_level_no < len(level_list) - 1:
@@ -1848,14 +1789,9 @@ def main():
                 current_level = level_list[current_level_no]
                 player.level = current_level
 
-        # Draw the sprites
         current_level.draw(screen)
         active_sprite_list.draw(screen)
-
-        # Limit to 60 frames per second
-        clock.tick(60)
-
-        # Update the screen with what we've drawn.
+        clock.tick(30)
         pygame.display.flip()
 
     pygame.quit()

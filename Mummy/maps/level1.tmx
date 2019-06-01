@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.2" orientation="orthogonal" renderorder="right-down" width="200" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="123">
+<map version="1.2" tiledversion="1.2.2" orientation="orthogonal" renderorder="right-down" width="200" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="125">
  <tileset firstgid="1" source="01.tsx"/>
  <tileset firstgid="4" source="02.tsx"/>
  <tileset firstgid="16" source="03.tsx"/>
@@ -79,7 +79,7 @@
 </data>
   </layer>
  </group>
- <group id="9" name="Camada principal">
+ <group id="9" name="Camada principal" visible="0">
   <layer id="5" name="Espinhos" width="200" height="12">
    <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -197,18 +197,18 @@
   <object id="1" name="plataforma" x="-47.0003" y="-2.16667" width="47.9993" height="768.167"/>
   <object id="3" name="plataforma" x="-0.333667" y="578.917" width="700.333" height="188.834"/>
   <object id="4" name="plataforma" x="698.833" y="705.917" width="643.333" height="62.167"/>
-  <object id="5" name="plataforma" x="837.334" y="450.917" width="184.333" height="56.167"/>
-  <object id="6" name="plataforma" x="1155.83" y="386.916" width="184.333" height="56.167"/>
-  <object id="7" name="plataforma" x="1539.83" y="450.917" width="184.333" height="56.167"/>
+  <object id="5" name="plataforma2" x="837.334" y="450.917" width="184.333" height="50"/>
+  <object id="6" name="plataforma2" x="1155.83" y="386.916" width="184.333" height="50"/>
+  <object id="7" name="plataforma2" x="1539.83" y="450.917" width="184.333" height="50"/>
   <object id="8" name="plataforma" x="1536.83" y="705.917" width="639.333" height="66.167"/>
   <object id="9" name="plataforma" x="2175.33" y="577.917" width="321.333" height="192.167"/>
-  <object id="10" name="plataforma" x="2626.33" y="513.917" width="123.333" height="54.167"/>
-  <object id="11" name="plataforma" x="5123.16" y="385.584" width="123.333" height="54.167"/>
-  <object id="12" name="plataforma" x="2883.33" y="513.917" width="377.333" height="54.167"/>
+  <object id="10" name="plataforma2" x="2626.33" y="513.917" width="123.333" height="50"/>
+  <object id="11" name="plataforma2" x="5123.16" y="385.584" width="123.333" height="50"/>
+  <object id="12" name="plataforma2" x="2883.33" y="513.917" width="377.333" height="50"/>
   <object id="13" name="plataforma" x="3647.33" y="576.917" width="320.333" height="190.167"/>
   <object id="14" name="plataforma" x="3968.83" y="705.917" width="3654.33" height="59.167"/>
   <object id="15" name="plataforma" x="5570.08" y="193.167" width="1656.5" height="57.917"/>
-  <object id="16" name="plataforma" x="3394.33" y="513.917" width="123.333" height="54.167"/>
+  <object id="16" name="plataforma2" x="3394.33" y="513.917" width="123.333" height="50"/>
   <object id="17" name="plataforma" x="4226.75" y="257.375" width="887.833" height="57.917"/>
   <object id="18" name="plataforma" x="8065.09" y="449.042" width="124.83" height="323.917"/>
   <object id="19" name="plataforma" x="7617.09" y="577.042" width="317.33" height="189.417"/>
@@ -220,7 +220,7 @@
   <object id="28" name="espinhos" x="1344" y="722.5" width="193.5" height="46.5"/>
   <object id="29" name="espinhos" x="2496.58" y="727.416" width="1149.5" height="39.8334"/>
   <object id="30" name="espinhos" x="7935.92" y="723.417" width="709.5" height="42.5"/>
-  <object id="31" name="plataforma" x="5315" y="513.917" width="123.333" height="54.167"/>
+  <object id="31" name="plataforma2" x="5315" y="513.917" width="123.333" height="50"/>
   <object id="32" name="escaravelho" x="929" y="410.75"/>
   <object id="33" name="escaravelho" x="1245" y="350.75"/>
   <object id="34" name="escaravelho" x="1632" y="430"/>
