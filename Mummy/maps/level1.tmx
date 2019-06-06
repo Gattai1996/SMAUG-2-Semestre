@@ -281,11 +281,9 @@
   <object id="109" name="tocha" x="12308.7" y="466.667" width="20" height="60"/>
   <object id="110" name="tocha" x="12500.7" y="467" width="20" height="60"/>
   <object id="111" name="aranha" x="9870" y="500.667" width="100" height="100"/>
-  <object id="112" name="esqueleto" x="11185.2" y="654.424" width="33.8182" height="31.9091"/>
+  <object id="112" name="esqueleto" x="11185.2" y="747.424"/>
   <object id="115" name="plataforma" x="4030.23" y="-0.208333" width="3523.66" height="60"/>
   <object id="116" name="porta" x="12388" y="613" width="62" height="95"/>
   <object id="117" name="player" x="200" y="440" width="62" height="132"/>
-  <object id="118" name="esqueleto" x="11281.1" y="655.045" width="33.8182" height="31.9091"/>
-  <object id="119" name="esqueleto" x="11234.1" y="655.045" width="33.8182" height="31.9091"/>
  </objectgroup>
 </map>

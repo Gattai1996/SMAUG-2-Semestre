@@ -16,11 +16,12 @@ size = [SCREEN_WIDTH, SCREEN_HEIGHT]
 screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 clock = pygame.time.Clock()
 font_name = pygame.font.match_font('princeofpersia')
+load_game = True
 
 
-def print_in_screen(surf, text, tamanho, x, y):
+def print_in_screen(surf, text, tamanho, x, y, color):
     font = pygame.font.Font(font_name, tamanho)
-    text_surface = font.render(text, True, WHITE)
+    text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
@@ -96,7 +97,7 @@ class Player(pygame.sprite.Sprite):
         self.wall_jump_direita = False
         self.wall_jump_esquerda = False
         self.life = 200
-        self.poder = 10
+        self.power = 10
         self.item = 'faca'
         self.dano_delay = False
         self.attack_delay = False
@@ -201,7 +202,7 @@ class Player(pygame.sprite.Sprite):
                     self.current_frame = (self.current_frame + 1) % len(self.melee_left)
                     self.image = self.melee_left[self.current_frame]
 
-        if self.attacking and self.poder > 0 and not self.attack_delay:
+        if self.attacking and self.power > 0 and not self.attack_delay:
             if now - self.last_update > 50:
                 self.last_update = now
                 if self.facing == 'right':
@@ -326,9 +327,9 @@ class Player(pygame.sprite.Sprite):
 
         for poder in self.poder_hit_list:
             self.heart.play()
-            self.poder += 3
-            if self.poder > 10:
-                self.poder = 10
+            self.power += 3
+            if self.power > 10:
+                self.power = 10
 
         for enemy in self.enemy_hit_list:
             if enemy.ativo:
@@ -495,8 +496,8 @@ class Player(pygame.sprite.Sprite):
     def shoot(self):
         if not self.attack_delay:
             if self.item == 'faca':
-                if self.poder > 0 and self.attacking:
-                    self.poder -= 1
+                if self.power > 0 and self.attacking:
+                    self.power -= 1
                     self.faca_2.play()
                     if self.facing == 'right':
                         faca = Faca(self.rect.centerx, self.rect.top)
@@ -1225,6 +1226,7 @@ class Level(pygame.sprite.DirtySprite):
         self.world_shift = 0
         self.faca_3 = pygame.mixer.Sound('sfx/faca_3.wav')
         self.faca_4 = pygame.mixer.Sound('sfx/faca_4.wav')
+        self.level_no = 0
 
     def update(self):
         self.heart_list.update()
@@ -1380,10 +1382,10 @@ class Level(pygame.sprite.DirtySprite):
             if enemy.type == 3 and enemy.mostrar_barra:
                 draw_life_bar(screen, enemy.rect.x, enemy.rect.y, 100, 10, RED, enemy.life)
 
-        print_in_screen(screen, 'Level   1-1', 20, SCREEN_WIDTH / 2, 10)
-        print_in_screen(screen, str(self.player.poder), 20, SCREEN_WIDTH - 50, 10)
-        print_in_screen(screen, str(self.player.dano_delay), 20, 1000, 100)
+        print_in_screen(screen, 'Level   1-1', 20, SCREEN_WIDTH / 2, 10, WHITE)
+        print_in_screen(screen, str(self.player.power), 20, SCREEN_WIDTH - 50, 10, WHITE)
 
+        # print_in_screen(screen, str(self.player.dano_delay), 20, 1000, 100)
         # print_in_screen(screen, str(self.world_shift), 20, SCREEN_WIDTH - 50, 100)
         # Teste de hitbox com círculos
         # for hitbox in self.melee_hitbox_list:
@@ -1516,6 +1518,22 @@ class Level(pygame.sprite.DirtySprite):
         self.rect4.x = -2000
         self.rect4.y = 0
 
+    def save(self):
+        save = open('save.txt', 'w')
+        save.write(str(self.player.life))
+        save.write('\n')
+        save.write(str(self.player.power))
+        save.write('\n')
+        save.write(str(self.level_no))
+        save.write('\n')
+        save.write(str(self.world_shift))
+        save.write('\n')
+        save.write(str(self.player_pos_x))
+        save.write('\n')
+        save.write(str(self.player_pos_y))
+        save.close()
+
+
 
 class Level01(Level):
     def __init__(self, player):
@@ -1577,18 +1595,17 @@ marca()
 
 
 def menu():
+    global load_game
     running_menu = True
     pygame.mouse.set_visible(False)
     size = [SCREEN_WIDTH, SCREEN_HEIGHT]
     screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
-
     pygame.mixer.music.load('msc/menu.ogg')
     pygame.mixer.music.set_volume(0.4)
     select = pygame.mixer.Sound('sfx/select1.wav')
     confirm = pygame.mixer.Sound('sfx/confirmation.wav')
     image = pygame.transform.scale(pygame.image.load('img/menu.png').convert_alpha(), (1360, 768))
     pygame.display.set_caption("Menu")
-
     pos_play = [272, 512]
     pos_config = [544, 512]
     pos_off = [816, 512]
@@ -1596,12 +1613,10 @@ def menu():
     pos_light1 = (pos_play[0] - 8, pos_play[1] - 8)
     pos_light2 = (pos_config[0] - 8, pos_config[1] - 8)
     pos_light3 = (pos_off[0] - 8, pos_off[1] - 8)
-
     play = pygame.transform.scale(pygame.image.load('img/play.png').convert_alpha(), (150, 150))
     config = pygame.transform.scale(pygame.image.load('img/config.png').convert_alpha(), (150, 150))
     turn_off = pygame.transform.scale(pygame.image.load('img/quit.png').convert_alpha(), (150, 150))
     light = pygame.transform.scale(pygame.image.load('img/light.png').convert_alpha(), (170, 170))
-
     pygame.mixer.music.play(loops=-1)
 
     while running_menu:
@@ -1623,6 +1638,12 @@ def menu():
                 if event.key == pygame.K_SPACE:
                     if pos_light == 1:
                         confirm.play()
+                        load_game = False
+                        running_menu = False
+                        pygame.mixer_music.stop()
+                    if pos_light == 2:
+                        confirm.play()
+                        load_game = True
                         running_menu = False
                         pygame.mixer_music.stop()
                     if pos_light == 3:
@@ -1634,6 +1655,12 @@ def menu():
                 if event.button == 0:
                     if pos_light == 1:
                         confirm.play()
+                        load_game = False
+                        running_menu = False
+                        pygame.mixer_music.stop()
+                    if pos_light == 2:
+                        confirm.play()
+                        load_game = True
                         running_menu = False
                         pygame.mixer_music.stop()
                     if pos_light == 3:
@@ -1675,7 +1702,10 @@ def menu():
         screen.blit(play, pos_play)
         screen.blit(config, pos_config)
         screen.blit(turn_off, pos_off)
-        # print_in_screen(screen, str(len(joysticks)), 50, 100, 100)
+        print_in_screen(screen, 'Novo jogo', 25, pos_play[0] + 70, pos_play[1] + 150, BLUE)
+        print_in_screen(screen, 'Carregar jogo', 25, pos_config[0] + 70, pos_config[1] + 150, BLUE)
+        print_in_screen(screen, 'Sair do jogo', 25, pos_off[0] + 70, pos_off[1] + 150, BLUE)
+
         if pos_light == 1:
             screen.blit(light, pos_light1)
         elif pos_light == 2:
@@ -1719,6 +1749,18 @@ def main():
     done = False
     pygame.mixer.music.load('msc/stage.ogg')
     pygame.mixer.music.play(loops=-1)
+
+    load = open('save.txt', 'r')
+    data = []
+    for line in load:
+        data.append(line)
+    if load_game:
+        player.life = int(data[0])
+        player.power = int(data[1])
+        current_level_no = int(data[2])
+        current_level.shift_world(int(data[3]))
+        player.rect.centerx = int(data[4])
+        player.rect.centery = int(data[5])
 
     '''-------------------------------------------- Loop do jogo ---------------------------------------------------'''
 
@@ -1774,6 +1816,8 @@ def main():
                     player.attacking = True
                     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
                     player.shoot()
+                if event.button == 6:
+                    current_level.save()
                 if event.button == 7:
                     pygame.quit()
                     quit()
@@ -1859,6 +1903,7 @@ def main():
                 current_level_no += 1
                 current_level = level_list[current_level_no]
                 player.level = current_level
+                current_level.level_no += 1
 
         current_level.draw(screen)
         active_sprite_list.draw(screen)
