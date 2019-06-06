@@ -331,46 +331,48 @@ class Player(pygame.sprite.Sprite):
                 self.poder = 10
 
         for enemy in self.enemy_hit_list:
-            if self.dash_change_x > 0:
-                self.dash_delay = False
-                self.dash = False
-                self.dash_change_x = 0
-                self.rect.right = enemy.rect.left
-            elif self.dash_change_x < 0:
-                self.dash_delay = False
-                self.dash = False
-                self.dash_change_x = 0
-                self.rect.right = enemy.rect.right
-            if not self.dano_delay:
-                self.stop()
-                self.dano()
-                self.delay_dano()
-                self.life -= 40
+            if enemy.ativo:
+                if self.dash_change_x > 0:
+                    self.dash_delay = False
+                    self.dash = False
+                    self.dash_change_x = 0
+                    self.rect.right = enemy.rect.left
+                elif self.dash_change_x < 0:
+                    self.dash_delay = False
+                    self.dash = False
+                    self.dash_change_x = 0
+                    self.rect.right = enemy.rect.right
+                if not self.dano_delay:
+                    self.stop()
+                    self.dano()
+                    self.delay_dano()
+                    self.life -= 40
 
-            if not self.dano_delay:
-                self.life -= 40
+                if not self.dano_delay:
+                    self.life -= 40
 
-            if self.change_x == 0:
-                if self.rect.x < enemy.rect.x:
-                    # self.rect.right = block1.rect.left - 1
+                if self.change_x == 0:
+                    if self.rect.x < enemy.rect.x:
+                        # self.rect.right = block1.rect.left - 1
+                        if not self.dano_delay:
+                            self.dano()
+                            self.delay_dano()
+                    else:
+                        # self.rect.left = block1.rect.right + 1
+                        if not self.dano_delay:
+                            self.dano()
+                            self.delay_dano()
+                if self.change_x > 0:
+                    # self.rect.right = block1.rect.left
                     if not self.dano_delay:
                         self.dano()
                         self.delay_dano()
-                else:
-                    # self.rect.left = block1.rect.right + 1
+                if self.change_x < 0:
+                    # self.rect.left = block1.rect.right
                     if not self.dano_delay:
                         self.dano()
                         self.delay_dano()
-            if self.change_x > 0:
-                # self.rect.right = block1.rect.left
-                if not self.dano_delay:
-                    self.dano()
-                    self.delay_dano()
-            if self.change_x < 0:
-                # self.rect.left = block1.rect.right
-                if not self.dano_delay:
-                    self.dano()
-                    self.delay_dano()
+
         # Wall jump
         for platform in self.platform_hit_list:
             if platform.type == 1:
@@ -744,6 +746,9 @@ class Aranha(pygame.sprite.Sprite):
         self.player_x = 0
         # self.current_frame = 0
         # self.last_update = 0
+        self.die = False
+        self.frame = 0
+        self.ativo = True
 
     # def load_img(self):
     #     self.walking_left = []
@@ -784,6 +789,9 @@ class Aranha(pygame.sprite.Sprite):
             if self.rect.y > SCREEN_HEIGHT:
                 self.rect.y = SCREEN_HEIGHT
 
+        if self.die:
+            self.kill()
+
     def dano_delay(self):
         pass
 
@@ -797,6 +805,8 @@ class Escaravelho(pygame.sprite.Sprite):
         self.type = 1
         self.walking_right = []
         self.walking_left = []
+        self.die_right = []
+        self.die_left =  []
         self.load_img()
         self.image = pygame.image.load('img/enemy_walking_000.png').convert()
         self.image.set_colorkey(BLACK)
@@ -814,6 +824,9 @@ class Escaravelho(pygame.sprite.Sprite):
         self.player_x = 0
         self.player_y = 0
         self.change_y = 0
+        self.die = False
+        self.frame = 0
+        self.ativo = True
 
     def load_img(self):
         for frame in range(0, 10):
@@ -823,23 +836,58 @@ class Escaravelho(pygame.sprite.Sprite):
         for frame in self.walking_left:
             self.walking_right.append(pygame.transform.flip(frame, True, False))
 
+        for frame in range(0, 7):
+            img = pygame.image.load('img/enemy_die_00{}.png'.format(frame))
+            self.die_left.append(img)
+
+        for frame in self.die_left:
+            self.die_right.append(pygame.transform.flip(frame, True, False))
+
     def animate(self):
-        now = pygame.time.get_ticks()
-        if self.facing == 'left':
-            if now - self.last_update > 50:
-                self.last_update = now
-                self.current_frame = (self.current_frame + 1) % len(self.walking_left)
-                self.image = self.walking_left[self.current_frame]
-        else:
-            if now - self.last_update > 50:
-                self.last_update = now
-                self.current_frame = (self.current_frame + 1) % len(self.walking_right)
-                self.image = self.walking_right[self.current_frame]
+        if self.ativo:
+            now = pygame.time.get_ticks()
+            if not self.die:
+                if self.facing == 'left':
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.walking_left)
+                        self.image = self.walking_left[self.current_frame]
+                else:
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.walking_right)
+                        self.image = self.walking_right[self.current_frame]
+            else:
+                self.rect.y += 2
+                if self.facing == 'left':
+                    if now - self.last_update > 25:
+                        self.last_update = now
+                        self.frame += 1
+                        if self.frame == len(self.die_left):
+                            self.ativo = False
+
+                        else:
+                            if self.last_update > 25:
+                                self.image = self.die_left[self.frame]
+                else:
+                    if now - self.last_update > 25:
+                        self.last_update = now
+                        self.frame += 1
+                        if self.frame == len(self.die_right):
+                            self.ativo = False
+
+                        else:
+                            if self.last_update > 25:
+                                self.image = self.die_right[self.frame]
 
     def update(self):
-        if self.player_x - self.rect.x < SCREEN_WIDTH:
+        if not self.ativo and self.player_x - self.rect.x > SCREEN_WIDTH\
+                or not self.ativo and self.rect.x - self.player_x > SCREEN_WIDTH:
+            self.kill()
+        self.animate()
+        if not self.die and self.player_x - self.rect.x < SCREEN_WIDTH:
             self.action = None
-            self.animate()
+
             self.rect.x += self.change_x
             self.rect.y += self.change_y
             if self.change_x == 2:
@@ -892,6 +940,8 @@ class Esqueleto(pygame.sprite.Sprite):
         self.last_update = 0
         self.action = False
         self.mostrar_barra = False
+        self.ativo = True
+        self.frame = 0
 
     def load_img(self):
         for frame in range(0, 10):
@@ -928,71 +978,80 @@ class Esqueleto(pygame.sprite.Sprite):
             self.hit_left.append(pygame.transform.flip(frame, True, False))
 
         for frame in range(0, 10):
-            img = pygame.transform.scale(pygame.image.load('img/skeleton_die_00{}.png'.format(frame)). convert_alpha(), (80, 100))
+            img = pygame.transform.scale(pygame.image.load('img/skeleton_die_00{}.png'.format(frame)). convert_alpha(), (140, 115))
             self.die_right.append(img)
         for frame in self.die_right:
             self.die_left.append(pygame.transform.flip(frame, True, False))
 
     def animate(self):
-        now = pygame.time.get_ticks()
-        if self.idle:
-            if self.facing == 'left':
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.idle_left)
-                    self.image = self.idle_left[self.current_frame]
-            else:
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.idle_right)
-                    self.image = self.idle_right[self.current_frame]
-        if self.walking:
-            if self.facing == 'left':
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.walking_left)
-                    self.image = self.walking_left[self.current_frame]
-            else:
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.walking_right)
-                    self.image = self.walking_right[self.current_frame]
-        if self.attack:
-            if self.facing == 'left':
-                if now - self.last_update > 80:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.attack_left)
-                    self.image = self.attack_left[self.current_frame]
-            else:
-                if now - self.last_update > 80:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.attack_right)
-                    self.image = self.attack_right[self.current_frame]
-        if self.hit:
-            if self.facing == 'left':
-                if now - self.last_update > 30:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.hit_left)
-                    self.image = self.hit_left[self.current_frame]
-            else:
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.hit_right)
-                    self.image = self.hit_right[self.current_frame]
-        if self.die:
-            if self.facing == 'left':
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.die_left)
-                    self.image = self.die_left[self.current_frame]
-            else:
-                if now - self.last_update > 50:
-                    self.last_update = now
-                    self.current_frame = (self.current_frame + 1) % len(self.die_right)
-                    self.image = self.die_right[self.current_frame]
+        if self.ativo:
+            now = pygame.time.get_ticks()
+            if self.idle:
+                if self.facing == 'left':
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.idle_left)
+                        self.image = self.idle_left[self.current_frame]
+                else:
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.idle_right)
+                        self.image = self.idle_right[self.current_frame]
+            if self.walking:
+                if self.facing == 'left':
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.walking_left)
+                        self.image = self.walking_left[self.current_frame]
+                else:
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.walking_right)
+                        self.image = self.walking_right[self.current_frame]
+            if self.attack:
+                if self.facing == 'left':
+                    if now - self.last_update > 80:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.attack_left)
+                        self.image = self.attack_left[self.current_frame]
+                else:
+                    if now - self.last_update > 80:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.attack_right)
+                        self.image = self.attack_right[self.current_frame]
+            if self.hit:
+                if self.facing == 'left':
+                    if now - self.last_update > 30:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.hit_left)
+                        self.image = self.hit_left[self.current_frame]
+                else:
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.current_frame = (self.current_frame + 1) % len(self.hit_right)
+                        self.image = self.hit_right[self.current_frame]
+            if self.die:
+                if self.facing == 'left':
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.frame += 1
+                        if self.frame == len(self.die_left):
+                            self.ativo = False
+                        else:
+                            if self.last_update > 50:
+                                self.image = self.die_left[self.frame]
+                else:
+                    if now - self.last_update > 50:
+                        self.last_update = now
+                        self.frame += 1
+                        if self.frame == len(self.die_right):
+                            self.ativo = False
+                        else:
+                            if self.last_update > 50:
+                                self.image = self.die_right[self.frame]
 
     def update(self):
-        if self.player_x - self.rect.x < SCREEN_WIDTH:
+        if self.ativo and self.player_x - self.rect.x < SCREEN_WIDTH:
             self.animate()
             self.rect.x += self.change_x
             self.rect.y += self.change_y
@@ -1138,7 +1197,7 @@ class Porta(pygame.sprite.Sprite):
         self.rect.y = y
 
 
-class Level(pygame.sprite.Sprite):
+class Level(pygame.sprite.DirtySprite):
     def __init__(self, player):
         pygame.sprite.Sprite.__init__(self)
         # Adiciona os grupos de sprites em listas
@@ -1203,12 +1262,16 @@ class Level(pygame.sprite.Sprite):
 
         for enemy in self.hits_enemy or self.hitbox_in_enemy:
             if not enemy.delay_dano:
-                enemy.life -= 25
+                enemy.life -= randint(15, 30)
                 enemy.dano_delay()
 
         for enemy in self.enemy_list:
             if not enemy.life > 0:
-                self.enemy_list.remove(enemy)
+                enemy.die = True
+
+        # for enemy in self.enemy_list:
+        #     if not enemy.life > 0:
+        #         self.enemy_list.remove(enemy)
 
         # Lógica dos escaravelhos e esqueletos é ativada ao encostar em um limitador do arquivo tmx
         for enemy in self.enemy_hit_limitador:
@@ -1222,7 +1285,9 @@ class Level(pygame.sprite.Sprite):
 
         # Corrige inimigos "enterrados" nas plataformas
         for enemy in self.enemy_hit_platform:
-            if enemy.type == 1 or 3:
+            if enemy.type == 1 and enemy.ativo:
+                enemy.rect.y -= 1
+            if enemy.type == 3:
                 enemy.rect.y -= 1
 
         for escaravelho in self.enemy_list:
@@ -1279,6 +1344,13 @@ class Level(pygame.sprite.Sprite):
                     esqueleto.action = True
                 else:
                     esqueleto.action = False
+
+                if esqueleto.die:
+                    esqueleto.action = False
+                    esqueleto.idle = False
+                    esqueleto.walking = False
+                    esqueleto.attack = False
+                    esqueleto.hit = False
 
     def draw(self, screen):
         self.platform_list.draw(screen)
@@ -1727,7 +1799,6 @@ def main():
             if event.type == pygame.USEREVENT+7:
                 for enemy in current_level.enemy_list:
                     enemy.hit = False
-                    enemy.idle = True
                     enemy.delay_dano = False
                     enemy.mostrar_barra = False
             if event.type == pygame.USEREVENT-1:
