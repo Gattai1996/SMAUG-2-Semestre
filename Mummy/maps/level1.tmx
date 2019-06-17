@@ -79,7 +79,7 @@
 </data>
   </layer>
  </group>
- <group id="9" name="Camada principal" visible="0">
+ <group id="9" name="Camada principal">
   <layer id="5" name="Espinhos" width="200" height="12">
    <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -207,9 +207,9 @@
   <object id="12" name="plataforma2" x="2883.33" y="513.917" width="377.333" height="50"/>
   <object id="13" name="plataforma" x="3647.33" y="576.917" width="320.333" height="190.167"/>
   <object id="14" name="plataforma" x="3968.83" y="705.917" width="3654.33" height="59.167"/>
-  <object id="15" name="plataforma" x="5570.08" y="193.167" width="1656.5" height="57.917"/>
+  <object id="15" name="plataforma2" x="5570.08" y="193.167" width="1656.5" height="57.917"/>
   <object id="16" name="plataforma2" x="3394.33" y="513.917" width="123.333" height="50"/>
-  <object id="17" name="plataforma" x="4226.75" y="257.375" width="887.833" height="57.917"/>
+  <object id="17" name="plataforma2" x="4226.75" y="257.375" width="887.833" height="57.917"/>
   <object id="18" name="plataforma" x="8065.09" y="449.042" width="124.83" height="323.917"/>
   <object id="19" name="plataforma" x="7617.09" y="577.042" width="317.33" height="189.417"/>
   <object id="20" name="plataforma" x="7743.09" y="449.041" width="191.33" height="126.417"/>
@@ -282,7 +282,6 @@
   <object id="110" name="tocha" x="12500.7" y="467" width="20" height="60"/>
   <object id="111" name="aranha" x="9870" y="500.667" width="100" height="100"/>
   <object id="112" name="esqueleto" x="11185.2" y="747.424"/>
-  <object id="115" name="plataforma" x="4030.23" y="-0.208333" width="3523.66" height="60"/>
   <object id="116" name="porta" x="12388" y="613" width="62" height="95"/>
   <object id="117" name="player" x="200" y="440" width="62" height="132"/>
  </objectgroup>
